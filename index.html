@@ -1,0 +1,670 @@
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { 
+  CheckCircle2, 
+  Share2, 
+  Copy, 
+  Heart, 
+  X,
+  Play,
+  Flame,
+  Clock,
+  ChevronDown,
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  Pause,
+  AlertCircle
+} from 'lucide-react';
+
+// Event starts Sept 29, 2026, 12:00 AM EDT (which is 4:00 AM UTC)
+const EVENT_START = new Date('2026-09-29T04:00:00Z');
+// Event ends exactly 24 hours later
+const EVENT_END = new Date(EVENT_START.getTime() + 24 * 60 * 60 * 1000);
+
+const SCHEDULE = [
+  "Sarah Mitchell", "David Kim", "Emily Rodriguez", "Michael Turner", 
+  "Jessica Lee", "Brian Hayes", "Amanda Foster", "Robert Chen", 
+  "Sidney Prescott", "Amy Williams", "David O'Connor", "Lisa Barnes", 
+  "Mark Stevens", "Anna Kowalski", "James Thompson", "Rachel Green", 
+  "John Martinez", "Maria Garcia", "Peter Wright", "Chloe Bennett", 
+  "Daniel Evans", "Grace Taylor", "Kevin White", "Olivia Martin"
+];
+
+const PRAYER_CATEGORIES = [
+  { 
+    id: 'church',
+    title: "Our Church", 
+    desc: "Unity, vision, and spiritual growth",
+    prompts: [
+      "Pray for a spirit of unity to bind our congregation together in love.",
+      "Ask God to give clear vision and direction to our pastoral team.",
+      "Pray that every member experiences deep, transformative spiritual growth.",
+      "Lift up our volunteer teams, asking for joy and endurance in their service."
+    ]
+  },
+  { 
+    id: 'community',
+    title: "Our Community", 
+    desc: "Schools, leaders, and lasting peace",
+    prompts: [
+      "Ask for protection and wisdom for our local teachers, students, and administrators.",
+      "Pray for city officials and first responders to have discernment and safety.",
+      "Pray that our church would be a beacon of hope and practical help in our neighborhoods.",
+      "Ask for peace and reconciliation in areas of our community experiencing division."
+    ]
+  },
+  { 
+    id: 'families',
+    title: "Families", 
+    desc: "Marriages, children, and relationships",
+    prompts: [
+      "Pray for marriages to be strengthened, characterized by grace and mutual respect.",
+      "Lift up parents, asking for patience and wisdom in raising the next generation.",
+      "Pray for prodigal children to experience God's love and return home.",
+      "Ask for comfort and community support for single parents and those navigating loss."
+    ]
+  },
+  { 
+    id: 'healing',
+    title: "Healing", 
+    desc: "Physical, mental, and emotional restoration",
+    prompts: [
+      "Lift up those in our church family battling chronic illness or sudden medical crises.",
+      "Pray for individuals struggling with anxiety, depression, or other mental health challenges.",
+      "Ask God to provide comfort and peace that surpasses understanding to those grieving.",
+      "Pray for doctors, nurses, and caregivers to have stamina and wisdom."
+    ]
+  },
+];
+
+const formatHour = (index) => {
+  if (index === 0 || index === 24) return '12:00 AM';
+  if (index === 12) return '12:00 PM';
+  return index < 12 ? `${index}:00 AM` : `${index - 12}:00 PM`;
+};
+
+const formatTimeRemaining = (ms) => {
+  if (ms <= 0) return '00:00';
+  const totalSeconds = Math.floor(ms / 1000);
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+};
+
+const formatElapsed = (ms) => {
+  const totalSeconds = Math.floor(ms / 1000);
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+};
+
+export default function App() {
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [isPraying, setIsPraying] = useState(false);
+  const [activeSessionCategory, setActiveSessionCategory] = useState(null);
+  
+  // High-precision clock for event-based timing
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Determine event state
+  const now = currentTime.getTime();
+  const startTime = EVENT_START.getTime();
+  const endTime = EVENT_END.getTime();
+  
+  let eventState = 'PRE_EVENT';
+  let currentHourIndex = 0;
+  let msUntilNext = 0;
+  let eventProgress = 0;
+
+  if (now < startTime) {
+    eventState = 'PRE_EVENT';
+    msUntilNext = startTime - now;
+  } else if (now >= endTime) {
+    eventState = 'POST_EVENT';
+    eventProgress = 1;
+    currentHourIndex = 23;
+  } else {
+    eventState = 'IN_PROGRESS';
+    const elapsed = now - startTime;
+    currentHourIndex = Math.floor(elapsed / (1000 * 60 * 60));
+    const currentHourStart = startTime + currentHourIndex * 1000 * 60 * 60;
+    const nextHourStart = currentHourStart + 1000 * 60 * 60;
+    msUntilNext = nextHourStart - now;
+    eventProgress = elapsed / (24 * 60 * 60 * 1000);
+  }
+
+  const handleJoinPrayer = () => {
+    setIsPraying(true);
+    // Open session with a general mix if clicking the main button
+    setActiveSessionCategory(PRAYER_CATEGORIES[0]); 
+  };
+
+  const handleShare = (type) => {
+    alert(`${type} copied to clipboard! Share it with someone to join the prayer chain.`);
+  };
+
+  return (
+    <div className="bg-slate-950 min-h-screen text-slate-100 font-sans selection:bg-orange-500/30 overflow-x-hidden">
+      <style>{`
+        .glass-panel {
+          background: rgba(255, 255, 255, 0.03);
+          backdrop-filter: blur(24px);
+          -webkit-backdrop-filter: blur(24px);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+        }
+        .scrollbar-custom::-webkit-scrollbar {
+          width: 6px;
+        }
+        .scrollbar-custom::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.02);
+          border-radius: 4px;
+        }
+        .scrollbar-custom::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 4px;
+        }
+        .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+          background: rgba(249, 115, 22, 0.5);
+        }
+      `}</style>
+
+      {/* Ambient Background */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden motion-reduce:hidden">
+        <div className="absolute top-[-10%] right-[-5%] w-[50vw] h-[50vw] bg-slate-800/20 rounded-full blur-[120px]"></div>
+        <div className="absolute top-[20%] left-[-10%] w-[40vw] h-[40vw] bg-orange-900/10 rounded-full blur-[140px]"></div>
+      </div>
+
+      <div className="max-w-5xl mx-auto min-h-screen relative z-10 flex flex-col pb-24">
+        
+        <header className="pt-12 pb-8 px-6 text-center">
+          <div className="inline-flex items-center justify-center gap-2 px-4 py-1.5 rounded-full glass-panel mb-6">
+            <Flame size={14} className="text-orange-500" />
+            <span className="text-orange-200/90 font-bold tracking-[0.15em] text-xs uppercase">The Foundery Church</span>
+          </div>
+          <h1 className="text-4xl md:text-5xl font-light tracking-tight mb-3 text-white">
+            <span className="font-bold">24 HOURS</span> OF PRAYER
+          </h1>
+          <p className="text-slate-400 font-light text-base md:text-lg tracking-wide">One Church. One Prayer. Every Hour.</p>
+        </header>
+
+        {}
+        <main className="flex-1 w-full px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-start">
+          
+          {/* Left Column: Orbit and Core Actions */}
+          <div className="flex flex-col gap-8 w-full max-w-md mx-auto lg:max-w-none lg:sticky lg:top-12">
+            
+            <PrayerOrbit 
+              eventState={eventState}
+              currentHourIndex={currentHourIndex}
+              eventProgress={eventProgress}
+            />
+
+            <div className="text-center flex flex-col items-center">
+              {eventState === 'IN_PROGRESS' ? (
+                <>
+                  <p className="text-slate-400 text-sm mb-1">Next up: <span className="text-slate-200">{SCHEDULE[(currentHourIndex + 1) % 24]}</span></p>
+                  <p className="text-orange-400 font-mono text-base tracking-widest">Begins in {formatTimeRemaining(msUntilNext)}</p>
+                </>
+              ) : eventState === 'PRE_EVENT' ? (
+                <p className="text-orange-400 font-mono text-base tracking-widest">Starts in {formatTimeRemaining(msUntilNext)}</p>
+              ) : (
+                <p className="text-slate-400 text-sm">The 24 hours of prayer has concluded.</p>
+              )}
+            </div>
+            
+            <div className="flex flex-col gap-4 mt-2">
+              <button 
+                onClick={handleJoinPrayer}
+                className="w-full relative group overflow-hidden rounded-2xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-base py-4 shadow-[0_0_30px_rgba(234,88,12,0.2)] transition-all active:scale-[0.99] flex items-center justify-center gap-3"
+              >
+                <Play fill="currentColor" size={18} />
+                <span className="tracking-widest uppercase">Pray With Them Now</span>
+              </button>
+
+              <div className="flex items-center justify-center gap-2 opacity-80 mt-2">
+                <Heart size={14} className={isPraying ? "text-orange-500" : "text-slate-500"} />
+                <p className="text-slate-300 text-xs font-medium tracking-wide">
+                  {isPraying ? "You are actively part of the chain." : "Join to mark your participation."} 
+                  <span className="text-slate-500 ml-2 font-normal">(Demo stats)</span>
+                </p>
+              </div>
+            </div>
+
+            <div className="glass-panel p-1 rounded-2xl flex gap-1 justify-center max-w-xs mx-auto w-full mt-4">
+              <button onClick={() => handleShare('Link')} className="flex-1 hover:bg-white/5 text-slate-300 py-3 rounded-xl font-medium text-xs tracking-widest uppercase flex items-center justify-center gap-2 transition-colors">
+                <Copy size={16} /> Link
+              </button>
+              <div className="w-[1px] bg-white/10 my-2"></div>
+              <button onClick={() => handleShare('Share Sheet')} className="flex-1 hover:bg-white/5 text-slate-300 py-3 rounded-xl font-medium text-xs tracking-widest uppercase flex items-center justify-center gap-2 transition-colors">
+                <Share2 size={16} /> Share
+              </button>
+            </div>
+          </div>
+
+          {}
+          <div className="flex flex-col gap-10 w-full max-w-md mx-auto lg:max-w-none pb-12">
+            
+            <section>
+              <div className="flex justify-between items-end mb-4 px-1">
+                <div>
+                  <h3 className="font-light text-2xl text-white tracking-tight">Timeline</h3>
+                  <p className="text-slate-400 text-xs uppercase tracking-widest mt-1">
+                    {eventState === 'PRE_EVENT' ? 'Starting soon' : eventState === 'POST_EVENT' ? 'Completed' : `Hour ${currentHourIndex + 1} of 24`}
+                  </p>
+                </div>
+              </div>
+              <PrayerTimeline 
+                currentHourIndex={currentHourIndex} 
+                eventState={eventState}
+              />
+            </section>
+
+            <section>
+              <h3 className="font-light text-2xl text-white mb-4 px-1 tracking-tight">Prayer Focus</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {PRAYER_CATEGORIES.map((cat) => (
+                  <button 
+                    key={cat.id}
+                    onClick={() => {
+                      setActiveSessionCategory(cat);
+                      setIsPraying(true);
+                    }}
+                    className="glass-panel p-5 rounded-2xl flex flex-col text-left group hover:bg-white/5 hover:border-orange-500/30 transition-all focus:outline-none focus:ring-2 focus:ring-orange-500/50"
+                  >
+                    <div className="flex justify-between items-center mb-2 w-full">
+                      <span className="font-medium text-slate-100 text-base tracking-wide">{cat.title}</span>
+                      <ArrowRight size={16} className="text-slate-600 group-hover:text-orange-400 transition-colors" />
+                    </div>
+                    <span className="text-slate-400 text-sm font-light leading-relaxed">{cat.desc}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            <section className="glass-panel rounded-3xl p-6 md:p-8 mt-4">
+              <PrayerRequestForm />
+            </section>
+
+          </div>
+        </main>
+      </div>
+
+      {}
+      {activeSessionCategory && (
+        <PrayerSession 
+          category={activeSessionCategory} 
+          currentPerson={SCHEDULE[currentHourIndex]}
+          onClose={() => setActiveSessionCategory(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function PrayerOrbit({ eventState, currentHourIndex, eventProgress }) {
+  const cx = 150;
+  const cy = 150;
+  const r = 135; 
+  const circumference = 2 * Math.PI * r;
+  
+  // Progress calculations
+  const strokeDashoffset = circumference - (eventProgress * circumference);
+  const angle = (eventProgress * 2 * Math.PI) - (Math.PI / 2);
+  const particleX = cx + r * Math.cos(angle);
+  const particleY = cy + r * Math.sin(angle);
+
+  const currentPerson = SCHEDULE[currentHourIndex];
+  
+  return (
+    <div className="relative w-full aspect-square flex items-center justify-center max-w-[380px] mx-auto">
+      <svg viewBox="0 0 300 300" className="w-full h-full absolute inset-0 pointer-events-none">
+        <defs>
+          <linearGradient id="orbitGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#f97316" />
+            <stop offset="100%" stopColor="#ea580c" />
+          </linearGradient>
+        </defs>
+
+        {/* Base Track */}
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="2" />
+
+        {/* Progress Track */}
+        {eventState !== 'PRE_EVENT' && (
+          <circle 
+            cx={cx} cy={cy} r={r} 
+            fill="none" 
+            stroke="url(#orbitGlow)" 
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            className="transition-all duration-1000 ease-linear"
+            transform="rotate(-90 150 150)"
+          />
+        )}
+
+        {/* Current Time Particle */}
+        {eventState === 'IN_PROGRESS' && (
+          <g transform={`translate(${particleX - cx}, ${particleY - cy})`}>
+            <circle cx={cx} cy={cy} r="8" fill="rgba(249,115,22,0.2)" className="motion-safe:animate-pulse" />
+            <circle cx={cx} cy={cy} r="4" fill="#fff" />
+          </g>
+        )}
+      </svg>
+
+      {/* Center Content */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8 z-10">
+        {eventState === 'IN_PROGRESS' ? (
+          <>
+            <div className="inline-flex items-center gap-2 bg-slate-950 border border-red-500/30 rounded-full px-3 py-1.5 mb-5 shadow-[0_0_15px_rgba(239,68,68,0.15)]">
+              <span className="relative flex h-2 w-2">
+                <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+              </span>
+              <span className="text-red-400 font-bold tracking-[0.15em] text-xs uppercase">Praying Now</span>
+            </div>
+            
+            <h2 className="text-3xl md:text-4xl font-light text-white leading-tight mb-2 tracking-tight">
+              {currentPerson}
+            </h2>
+            
+            <p className="text-slate-300 font-medium text-sm md:text-base tracking-widest uppercase">
+              {formatHour(currentHourIndex)} – {formatHour(currentHourIndex + 1)}
+            </p>
+          </>
+        ) : eventState === 'PRE_EVENT' ? (
+          <h2 className="text-2xl font-light text-white tracking-tight">Starting Soon</h2>
+        ) : (
+          <h2 className="text-2xl font-light text-white tracking-tight">Completed</h2>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PrayerTimeline({ currentHourIndex, eventState }) {
+  const [expanded, setExpanded] = useState(false);
+  const listRef = useRef(null);
+
+  // Auto-scroll to current item when expanded
+  useEffect(() => {
+    if (expanded && listRef.current && eventState === 'IN_PROGRESS') {
+      const activeEl = listRef.current.querySelector('[data-active="true"]');
+      if (activeEl) {
+        activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  }, [expanded, eventState]);
+
+  return (
+    <div className="glass-panel rounded-3xl p-6 relative overflow-hidden flex flex-col">
+      <div 
+        ref={listRef}
+        className={`relative transition-all duration-500 ease-in-out scrollbar-custom ${expanded ? 'max-h-[60vh] overflow-y-auto pr-2' : 'max-h-[280px] overflow-hidden'}`}
+      >
+        <div className="absolute left-[11px] top-4 bottom-4 w-[2px] bg-slate-800 z-0" />
+        
+        {SCHEDULE.map((name, index) => {
+          const isPast = eventState === 'POST_EVENT' || (eventState === 'IN_PROGRESS' && index < currentHourIndex);
+          const isCurrent = eventState === 'IN_PROGRESS' && index === currentHourIndex;
+          
+          // Show logic for collapsed state: show current, previous, and next
+          if (!expanded) {
+            if (eventState === 'IN_PROGRESS' && Math.abs(index - currentHourIndex) > 1) return null;
+            if (eventState !== 'IN_PROGRESS' && index > 2) return null; // Show first 3 if not in progress
+          }
+
+          return (
+            <div 
+              key={index} 
+              data-active={isCurrent}
+              className={`relative z-10 flex items-start gap-5 py-3 px-2 rounded-xl transition-colors duration-300
+                ${isCurrent ? 'bg-orange-900/30 border border-orange-500/30 mt-2 mb-2' : 'border border-transparent'}
+                ${isPast ? 'opacity-50' : 'opacity-100'}
+              `}
+            >
+              <div className="flex flex-col items-center pt-1 bg-transparent">
+                {isPast ? (
+                  <CheckCircle2 size={24} className="text-slate-500 bg-slate-950 rounded-full" />
+                ) : isCurrent ? (
+                  <div className="relative w-6 h-6 flex items-center justify-center bg-slate-950 rounded-full">
+                    <span className="absolute inset-0 rounded-full bg-orange-500 motion-safe:animate-ping opacity-30"></span>
+                    <div className="w-3 h-3 rounded-full bg-orange-500 shadow-[0_0_12px_#f97316] relative z-10"></div>
+                  </div>
+                ) : (
+                  <div className="w-3 h-3 rounded-full bg-slate-700 border-2 border-slate-950 m-1.5 shadow-[0_0_0_2px_#334155]"></div>
+                )}
+              </div>
+              
+              <div className="flex-1 pb-2">
+                <div className="flex justify-between items-center">
+                  <span className={`block text-base ${isCurrent ? 'text-white font-medium' : 'text-slate-200 font-light'}`}>
+                    {name}
+                  </span>
+                  <span className={`font-mono text-sm ${isCurrent ? 'text-orange-400 font-medium' : 'text-slate-400'}`}>
+                    {formatHour(index)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <button 
+        onClick={() => setExpanded(!expanded)}
+        className="w-full mt-4 pt-4 border-t border-white/10 text-slate-300 hover:text-white font-medium text-xs tracking-widest uppercase transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-orange-500/50 rounded-lg"
+      >
+        {expanded ? 'Collapse Schedule' : 'View Full Schedule'}
+        <ChevronDown size={16} className={`transform transition-transform ${expanded ? 'rotate-180' : ''}`} />
+      </button>
+    </div>
+  );
+}
+
+function PrayerSession({ category, currentPerson, onClose }) {
+  const [promptIndex, setPromptIndex] = useState(0);
+  const [isAuto, setIsAuto] = useState(false);
+  const [sessionStart] = useState(Date.now());
+  const [elapsedMs, setElapsedMs] = useState(0);
+
+  const prompts = category.prompts;
+
+  // Timer Effect
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setElapsedMs(Date.now() - sessionStart);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [sessionStart]);
+
+  // Auto-advance Effect
+  useEffect(() => {
+    let cycler;
+    if (isAuto) {
+      cycler = setInterval(() => {
+        setPromptIndex((prev) => (prev + 1) % prompts.length);
+      }, 15000); // 15 seconds per prompt
+    }
+    return () => clearInterval(cycler);
+  }, [isAuto, prompts.length]);
+
+  // Keyboard Navigation & Escape
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+      if (e.key === 'ArrowRight') handleNext();
+      if (e.key === 'ArrowLeft') handlePrev();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  const handleNext = useCallback(() => {
+    setPromptIndex((prev) => (prev + 1) % prompts.length);
+  }, [prompts.length]);
+
+  const handlePrev = useCallback(() => {
+    setPromptIndex((prev) => (prev - 1 + prompts.length) % prompts.length);
+  }, [prompts.length]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/95 backdrop-blur-md overflow-y-auto animate-in fade-in duration-500">
+      <div className="relative w-full max-w-2xl min-h-[500px] flex flex-col my-auto glass-panel rounded-3xl overflow-hidden border-orange-500/20 shadow-2xl">
+        
+        {/* Header */}
+        <div className="flex justify-between items-center p-6 border-b border-white/5">
+          <div className="flex items-center gap-3">
+            <span className="text-orange-400 font-medium text-sm tracking-wide">{category.title}</span>
+            <span className="text-slate-600 text-sm">•</span>
+            <span className="text-slate-400 text-sm font-light">With {currentPerson || 'The Foundery'}</span>
+          </div>
+          <button 
+            onClick={onClose} 
+            className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all focus:outline-none focus:ring-2 focus:ring-orange-500"
+            aria-label="Close prayer session"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Content Area */}
+        <div className="flex-1 flex flex-col items-center justify-center p-8 sm:p-12 text-center min-h-[300px]">
+          <p 
+            key={promptIndex} // Forces re-render for animation on change
+            className="text-2xl sm:text-3xl md:text-4xl font-light text-white leading-relaxed animate-in fade-in slide-in-from-bottom-4 duration-700"
+          >
+            "{prompts[promptIndex]}"
+          </p>
+        </div>
+
+        {/* Controls */}
+        <div className="p-6 bg-slate-900/50 flex flex-col gap-6">
+          
+          {/* Navigation Dots */}
+          <div className="flex justify-center gap-3">
+            {prompts.map((_, idx) => (
+              <button 
+                key={idx}
+                onClick={() => setPromptIndex(idx)}
+                className={`h-2 rounded-full transition-all duration-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-slate-900 ${
+                  idx === promptIndex ? 'w-10 bg-orange-500' : 'w-2 bg-white/20 hover:bg-white/40'
+                }`}
+                aria-label={`Go to prompt ${idx + 1}`}
+              />
+            ))}
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <button onClick={handlePrev} className="p-3 rounded-full hover:bg-white/10 text-slate-300 transition-colors" aria-label="Previous prompt">
+                <ChevronLeft size={24} />
+              </button>
+              <button onClick={() => setIsAuto(!isAuto)} className="p-3 rounded-full hover:bg-white/10 text-slate-300 transition-colors flex items-center gap-2" aria-label="Toggle auto-advance">
+                {isAuto ? <Pause size={20} /> : <Play size={20} />}
+                <span className="text-xs uppercase tracking-widest hidden sm:inline">{isAuto ? 'Pause' : 'Auto'}</span>
+              </button>
+              <button onClick={handleNext} className="p-3 rounded-full hover:bg-white/10 text-slate-300 transition-colors" aria-label="Next prompt">
+                <ChevronRight size={24} />
+              </button>
+            </div>
+            
+            <div className="text-right flex items-center gap-4">
+              <div className="hidden sm:block text-slate-400 text-sm font-mono tracking-widest">
+                {formatElapsed(elapsedMs)}
+              </div>
+              <button 
+                onClick={onClose}
+                className="bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-xl text-sm font-medium tracking-wide transition-colors focus:outline-none focus:ring-2 focus:ring-white"
+              >
+                Finish Praying
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PrayerRequestForm() {
+  const [status, setStatus] = useState('idle'); // idle, submitting, success
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setStatus('submitting');
+    // Simulate network request
+    setTimeout(() => {
+      setStatus('success');
+      // Reset form after showing success for a while
+      setTimeout(() => setStatus('idle'), 5000);
+    }, 1000);
+  };
+
+  if (status === 'success') {
+    return (
+      <div className="py-12 flex flex-col items-center justify-center text-center animate-in fade-in">
+        <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mb-6">
+          <CheckCircle2 size={32} className="text-emerald-500" />
+        </div>
+        <h3 className="text-2xl font-light text-white mb-2">Request Received</h3>
+        <p className="text-slate-400 text-base">Our church family is praying with you.</p>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      <div>
+        <h3 className="font-light text-2xl text-white tracking-tight mb-2">How can we pray for you?</h3>
+        <p className="text-slate-400 text-sm">Share your burdens with our community.</p>
+      </div>
+
+      <div className="flex flex-col gap-1.5 mt-2">
+        <label htmlFor="name" className="text-slate-300 text-sm font-medium ml-1">Name <span className="text-slate-500 font-normal">(Optional)</span></label>
+        <input 
+          type="text" 
+          id="name"
+          placeholder="First & Last Name"
+          className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 transition-colors"
+        />
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="request" className="text-slate-300 text-sm font-medium ml-1">Prayer Request</label>
+        <textarea 
+          id="request"
+          required
+          rows={4}
+          placeholder="What is on your heart?"
+          className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 transition-colors resize-none"
+        />
+      </div>
+
+      <label className="flex items-center gap-3 cursor-pointer group">
+        <div className="relative flex items-center justify-center">
+          <input type="checkbox" className="peer sr-only" />
+          <div className="w-5 h-5 border-2 border-slate-600 rounded-md peer-checked:bg-orange-500 peer-checked:border-orange-500 transition-colors"></div>
+          <CheckCircle2 size={14} className="absolute text-white opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none" />
+        </div>
+        <span className="text-slate-300 text-sm group-hover:text-white transition-colors">Keep this request private (Pastors only)</span>
+      </label>
+
+      <button 
+        type="submit"
+        disabled={status === 'submitting'}
+        className="mt-4 w-full bg-white/10 hover:bg-white/15 text-white font-bold text-sm py-4 rounded-xl transition-colors active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+      >
+        {status === 'submitting' ? (
+          <span className="motion-safe:animate-pulse">Submitting...</span>
+        ) : (
+          'Submit Prayer Request'
+        )}
+      </button>
+    </form>
+  );
+}
