@@ -244,7 +244,7 @@
     };
 
     const SCRIPTURES = [
-      ["James 5:16","The prayer of a righteous person is powerful and effective."],
+      ["James 5:13–16","The prayer of a righteous person is powerful and effective."],
       ["Philippians 4:6","In every situation, by prayer and petition, with thanksgiving, present your requests to God."],
       ["1 Thessalonians 5:17","Pray continually."],
       ["Matthew 18:20","For where two or three gather in my name, there am I with them."]
@@ -393,6 +393,17 @@
             </main>
 
             {state==="completed" && <CompletionPanel filled={filled}/>}
+
+            <footer className="mt-14 pt-8 border-t border-white/5 text-center">
+              <div className="text-[10px] uppercase tracking-[.28em] text-orange-400">The Foundery Church</div>
+              <p className="text-slate-400 text-sm mt-3">1340 Washington Pike · Wellsburg, WV 26070</p>
+              <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 mt-3 text-sm">
+                <a href="tel:+13047370186" className="text-slate-300 hover:text-white transition">304-737-0186</a>
+                <span className="text-slate-700 hidden sm:inline">•</span>
+                <a href="https://thefoundery.church" target="_blank" rel="noopener noreferrer" className="text-orange-300 hover:text-orange-200 transition">thefoundery.church</a>
+              </div>
+              <p className="text-slate-600 text-xs mt-5">Sundays Are Just the Start.</p>
+            </footer>
           </div>
 
           {session && <PrayerSession category={session} onClose={closeSession}/>}
