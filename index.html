@@ -211,8 +211,12 @@
       const start = EVENT_START + index*HOUR;
       const end = start + HOUR;
       const cx=150, cy=150, radius=126;
-      const angle = state==="in-progress" ? ((((new Date(now)).getHours() + (new Date(now)).getMinutes()/60 + (new Date(now)).getSeconds()/3600) * 15) - 90) : -90;
-      const handAngle = state==="in-progress" ? ((((new Date(now)).getHours() + (new Date(now)).getMinutes()/60 + (new Date(now)).getSeconds()/3600) * 15) - 90) : -90;
+      // SVG pointer starts at 12 o'clock. rotate(0) = 12 AM, 90 = 6 AM, 180 = 12 PM, 270 = 6 PM.
+      // No -90 offset is needed because SVG rotation is applied to an element already positioned at 12 o'clock.
+      const clockDate = new Date(now);
+      const clockHours = clockDate.getHours() + clockDate.getMinutes()/60 + clockDate.getSeconds()/3600;
+      const angle = state==="in-progress" ? clockHours * 15 : 0;
+      const handAngle = angle;
       const marks = Array.from({length:24},(_,i)=>i);
 
       return (
