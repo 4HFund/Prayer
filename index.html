@@ -25,7 +25,13 @@
     .scrollbar-custom::-webkit-scrollbar-track { background:rgba(0,0,0,.2); border-radius:4px; }
     .scrollbar-custom::-webkit-scrollbar-thumb { background:rgba(255,255,255,.12); border-radius:4px; }
     .pulse-dot { animation:pulse 1.5s infinite; }
+    .float-soft { animation:floatSoft 7s ease-in-out infinite; }
+    .shimmer { background-size:200% 200%; animation:shimmer 7s ease infinite; }
+    .fade-cycle { animation:fadeCycle 10s ease-in-out infinite; }
     @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.45;transform:scale(1.35)} }
+    @keyframes floatSoft { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+    @keyframes shimmer { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
+    @keyframes fadeCycle { 0%,100%{opacity:.45} 50%{opacity:1} }
   </style>
 </head>
 <body>
@@ -207,6 +213,22 @@
       prompts:CATEGORIES.flatMap(c=>c.prompts)
     };
 
+    const SCRIPTURES = [
+      ["James 5:16","The prayer of a righteous person is powerful and effective."],
+      ["Philippians 4:6","In every situation, by prayer and petition, with thanksgiving, present your requests to God."],
+      ["1 Thessalonians 5:17","Pray continually."],
+      ["Matthew 18:20","For where two or three gather in my name, there am I with them."]
+    ];
+
+    const WALL = [
+      "Praying for our children.",
+      "Jesus, bring healing.",
+      "Praying for Liberia.",
+      "God, strengthen our families.",
+      "Praying for our community.",
+      "Jesus, draw people to You."
+    ];
+
     function formatTime(ms) {
       return new Intl.DateTimeFormat("en-US",{
         timeZone:"America/New_York",hour:"numeric",minute:"2-digit"
@@ -226,6 +248,8 @@
       const [now,setNow] = useState(Date.now());
       const [session,setSession] = useState(null);
       const [thanks,setThanks] = useState(false);
+      const [signupSlot,setSignupSlot] = useState(null);
+      const [prayedWith,setPrayedWith] = useState(false);
 
       useEffect(()=>{
         const id=setInterval(()=>setNow(Date.now()),1000);
@@ -237,6 +261,8 @@
       const idx = Math.max(0, Math.min(SCHEDULE.length-1, Math.floor(elapsed/SLOT)));
       const progress = elapsed/(EVENT_END-EVENT_START);
       const nextBoundary = EVENT_START + (idx+1)*SLOT;
+      const filled=SCHEDULE.filter(Boolean).length;
+      const open=SCHEDULE.length-filled;
 
       const closeSession = () => {
         setSession(null);
@@ -247,19 +273,15 @@
       return (
         <div className="min-h-screen bg-slate-950 text-slate-100 overflow-x-hidden">
           <div className="fixed inset-0 pointer-events-none overflow-hidden">
-            <div className="absolute -top-20 -right-20 w-96 h-96 rounded-full bg-slate-800/30 blur-3xl"></div>
-            <div className="absolute top-1/3 -left-20 w-80 h-80 rounded-full bg-orange-900/20 blur-3xl"></div>
+            <div className="absolute -top-20 -right-20 w-96 h-96 rounded-full bg-slate-800/30 blur-3xl float-soft"></div>
+            <div className="absolute top-1/3 -left-20 w-80 h-80 rounded-full bg-orange-900/20 blur-3xl float-soft"></div>
           </div>
 
           <div className="relative z-10 max-w-6xl mx-auto px-4 pb-24">
             <header className="pt-10 pb-8 text-center">
               <div className="mx-auto mb-6 flex justify-center">
                 <div className="bg-white rounded-2xl px-5 py-4 shadow-2xl shadow-black/30">
-                  <img
-                    src="https://img1.wsimg.com/isteam/ip/2d16522f-f140-4ab1-887b-4bd9f311f411/thumbnails/thumbnail-5a80e227-ef59-4e26-8a06-39959e42aeb4.png"
-                    alt="The Foundery Church"
-                    className="w-[250px] sm:w-[300px] h-auto object-contain"
-                  />
+                  <img src="https://img1.wsimg.com/isteam/ip/2d16522f-f140-4ab1-887b-4bd9f311f411/thumbnails/thumbnail-5a80e227-ef59-4e26-8a06-39959e42aeb4.png" alt="The Foundery Church" className="w-[250px] sm:w-[300px] h-auto object-contain"/>
                 </div>
               </div>
               <h1 className="text-3xl md:text-5xl font-light tracking-tight"><strong>24 HOURS</strong> OF PRAYER</h1>
@@ -268,33 +290,51 @@
               <p className="text-slate-500 text-xs mt-4">The Foundery Church · Wellsburg, West Virginia</p>
             </header>
 
-            <main className="grid lg:grid-cols-12 gap-8">
+            <PrayerChain state={state} index={idx} filled={filled} open={open}/>
+
+            <main className="grid lg:grid-cols-12 gap-8 mt-8">
               <section className="lg:col-span-5">
                 <PrayerOrbit state={state} index={idx} progress={progress} now={now} nextBoundary={nextBoundary} />
 
-                <button onClick={()=>setSession(GENERAL)} className="w-full mt-5 rounded-2xl bg-orange-600 hover:bg-orange-500 py-4 font-bold tracking-widest uppercase flex items-center justify-center gap-3 shadow-lg">
-                  <Icon name="play" size={18}/>
-                  {state==="in-progress" ? "Join this hour in prayer" : "Take a moment to pray"}
-                </button>
+                {state==="in-progress" && (
+                  <div className="grid grid-cols-2 gap-3 mt-5">
+                    <button onClick={()=>setSession(GENERAL)} className="rounded-2xl bg-orange-600 hover:bg-orange-500 py-4 font-bold tracking-wider uppercase flex items-center justify-center gap-2 shadow-lg">
+                      <Icon name="play" size={18}/> Pray Now
+                    </button>
+                    <button onClick={()=>setPrayedWith(true)} className={`rounded-2xl border py-4 font-semibold flex items-center justify-center gap-2 ${prayedWith?"bg-emerald-500/10 border-emerald-500/30 text-emerald-300":"bg-white/5 border-white/10 hover:bg-white/10"}`}>
+                      <Icon name="heart" size={18}/>{prayedWith?"Praying With Them":"Pray With Them"}
+                    </button>
+                  </div>
+                )}
 
-                <div className="h-8 flex items-center justify-center text-emerald-400 text-sm">{thanks ? "Thank you for joining us in prayer." : ""}</div>
+                {state!=="in-progress" && (
+                  <button onClick={()=>setSession(GENERAL)} className="w-full mt-5 rounded-2xl bg-orange-600 hover:bg-orange-500 py-4 font-bold tracking-widest uppercase flex items-center justify-center gap-3 shadow-lg">
+                    <Icon name="play" size={18}/>
+                    {state==="completed" ? "Keep Praying" : "Take a Moment to Pray"}
+                  </button>
+                )}
+
+                <div className="h-8 flex items-center justify-center text-emerald-400 text-sm">{thanks ? "Thank you for joining us in prayer." : prayedWith ? "You’re joining the prayer chain right now." : ""}</div>
                 <ShareControls/>
               </section>
 
               <section className="lg:col-span-7 space-y-10">
                 <div>
                   <div className="flex items-end justify-between mb-4 gap-3">
-                    <h2 className="text-2xl font-light">Prayer Schedule</h2>
+                    <div>
+                      <h2 className="text-2xl font-light">Prayer Schedule</h2>
+                      <p className="text-slate-500 text-xs mt-1">Tap any teal opening to volunteer for that time.</p>
+                    </div>
                     <span className="text-xs uppercase tracking-widest text-slate-400 bg-slate-900 border border-slate-800 rounded-full px-3 py-1">
                       {state==="before" ? "Upcoming" : state==="completed" ? "Completed" : `Slot ${idx+1} of 96`}
                     </span>
                   </div>
-                  <Timeline state={state} index={idx}/>
+                  <Timeline state={state} index={idx} onClaim={setSignupSlot}/>
                 </div>
 
                 <div>
                   <h2 className="text-2xl font-light mb-2">Prayer Focus</h2>
-                  <p className="text-slate-400 text-sm mb-4">Begin each 15 minute session with gratitude for God’s goodness, grace, and mercy. Pray through these requests, then add your own. James 5:13–16.</p>
+                  <p className="text-slate-400 text-sm mb-4">Begin each 15 minute session with gratitude for God’s goodness, grace, and mercy. Pray through these requests, then add your own.</p>
                   <div className="grid sm:grid-cols-2 gap-4">
                     {CATEGORIES.map((c,i)=>(
                       <button key={i} onClick={()=>setSession(c)} className="glass-panel rounded-2xl p-5 text-left hover:border-orange-500/50 transition">
@@ -308,14 +348,49 @@
                   </div>
                 </div>
 
+                <ScriptureStrip/>
+                <PrayerWall/>
+
                 <div className="glass-panel rounded-3xl p-6 md:p-8">
                   <PrayerRequestForm/>
                 </div>
               </section>
             </main>
+
+            {state==="completed" && <CompletionPanel filled={filled}/>}
           </div>
 
           {session && <PrayerSession category={session} onClose={closeSession}/>}
+          {signupSlot!==null && <SlotSignup slot={signupSlot} onClose={()=>setSignupSlot(null)}/>}
+        </div>
+      );
+    }
+
+    function PrayerChain({state,index,filled,open}) {
+      return (
+        <div className="glass-panel rounded-3xl p-5 md:p-6">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div>
+              <div className="text-xs tracking-[.2em] uppercase text-orange-400">The Prayer Chain</div>
+              <div className="text-2xl md:text-3xl font-light mt-1">{filled} of 96 slots covered</div>
+              <p className="text-slate-400 text-sm mt-1">{open===0 ? "Every prayer period is covered." : `${open} open ${open===1?"spot":"spots"} still need someone.`}</p>
+            </div>
+            <div className="text-sm text-slate-400">{Math.round((filled/96)*100)}% scheduled</div>
+          </div>
+          <div className="grid gap-1 mt-5" style={{gridTemplateColumns:"repeat(24,minmax(0,1fr))"}}>
+            {SCHEDULE.map((name,i)=>{
+              let cls=name?"bg-slate-700":"bg-teal-400";
+              if(state==="completed" || (state==="in-progress" && i<index)) cls="bg-orange-700";
+              if(state==="in-progress" && i===index) cls="bg-orange-400 shadow-[0_0_16px_rgba(251,146,60,.75)] pulse-dot";
+              return <div key={i} title={`${formatTime(EVENT_START+i*SLOT)} · ${name||"Open"}`} className={`h-2.5 rounded-full ${cls}`}></div>
+            })}
+          </div>
+          <div className="flex flex-wrap gap-x-5 gap-y-2 text-[11px] mt-4 text-slate-500">
+            <span><i className="inline-block w-2 h-2 rounded-full bg-orange-700 mr-1"></i>Completed</span>
+            <span><i className="inline-block w-2 h-2 rounded-full bg-orange-400 mr-1"></i>Now</span>
+            <span><i className="inline-block w-2 h-2 rounded-full bg-slate-700 mr-1"></i>Scheduled</span>
+            <span className="text-teal-300"><i className="inline-block w-2 h-2 rounded-full bg-teal-400 mr-1"></i>Open</span>
+          </div>
         </div>
       );
     }
@@ -383,6 +458,7 @@
                 </div>
                 <div className="text-2xl md:text-3xl font-bold tabular-nums text-white mb-1">{formatTime(now)}</div>
                 <h3 className="text-base md:text-lg font-semibold leading-tight">{current || "Open prayer slot"}</h3>
+                <p className="text-slate-400 text-[10px] mt-1">{current ? `${current} is carrying the prayer forward.` : "This prayer period still needs someone."}</p>
                 <p className="text-slate-300 text-[11px] mt-2 tracking-widest uppercase">{formatTime(start)} – {formatTime(end)}</p>
                 <div className="mt-3 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-300 text-[10px] tracking-wider">
                   SLOT {index+1} OF 96 · {Math.round(progress*100)}% COMPLETE
@@ -404,7 +480,7 @@
       );
     }
 
-    function Timeline({state,index}) {
+    function Timeline({state,index,onClaim}) {
       const ref = useRef(null);
       useEffect(()=>{
         if(state==="in-progress" && ref.current){
@@ -421,15 +497,18 @@
               const current=state==="in-progress" && i===index;
               const open=!name;
               return (
-                <div key={i} data-current={current?"true":"false"} className={`flex items-center gap-4 py-3 px-3 rounded-xl border ${current?"bg-orange-900/20 border-orange-500/20":open?"bg-teal-950/50 border-teal-500/40":"border-transparent"} ${past?"opacity-55":""}`}>
+                <button type="button" onClick={()=>open && !past && onClaim(i)} key={i} data-current={current?"true":"false"} disabled={!open || past} className={`w-full text-left flex items-center gap-4 py-3 px-3 rounded-xl border transition ${current?"bg-orange-900/20 border-orange-500/20":open&&!past?"bg-teal-950/50 border-teal-500/40 hover:border-teal-300 hover:bg-teal-900/40":"border-transparent"} ${past?"opacity-55":""}`}>
                   <div className="w-6 flex justify-center">
                     {past ? <Icon name="circle-check" size={22} className="text-slate-500"/> : <span className={`w-3 h-3 rounded-full ${current?"bg-orange-500":open?"bg-teal-400":"bg-slate-700"}`}></span>}
                   </div>
                   <div className="min-w-0 flex-1 flex items-center justify-between gap-4">
-                    <span className={`truncate ${current?"font-semibold text-white":open?"font-semibold text-teal-300":"text-slate-200"}`}>{name || "Open prayer slot"}</span>
+                    <div className="min-w-0">
+                      <span className={`block truncate ${current?"font-semibold text-white":open?"font-semibold text-teal-300":"text-slate-200"}`}>{name || "Open prayer slot"}</span>
+                      {open&&!past && <span className="text-[10px] text-teal-400/80">Tap to volunteer</span>}
+                    </div>
                     <span className={`font-mono text-sm shrink-0 ${current?"text-orange-400":open?"text-teal-300":"text-slate-500"}`}>{formatTime(EVENT_START+i*SLOT)}</span>
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>
@@ -443,42 +522,58 @@
       const [auto,setAuto]=useState(false);
       const [start]=useState(Date.now());
       const [elapsed,setElapsed]=useState(0);
+      const stages=[
+        ["Praise","Thank God for His goodness, grace, and mercy."],
+        ["Church","Pray for The Foundery, its leaders, ministries, and unity."],
+        ["Healing","Bring physical, emotional, and spiritual needs before God."],
+        ["Families & Salvation","Pray for homes, freedom, restoration, and people to know Jesus."],
+        ["Mission","Pray for the community, schools, Liberia, and what God is asking of you."]
+      ];
 
+      useEffect(()=>{ const id=setInterval(()=>setElapsed(Date.now()-start),1000); return ()=>clearInterval(id); },[start]);
+      useEffect(()=>{ if(!auto) return; const id=setInterval(()=>setI(v=>(v+1)%category.prompts.length),30000); return ()=>clearInterval(id); },[auto,category.prompts.length]);
       useEffect(()=>{
-        const id=setInterval(()=>setElapsed(Date.now()-start),1000);
-        return ()=>clearInterval(id);
-      },[start]);
-
-      useEffect(()=>{
-        if(!auto) return;
-        const id=setInterval(()=>setI(v=>(v+1)%category.prompts.length),30000);
-        return ()=>clearInterval(id);
-      },[auto,category.prompts.length]);
-
-      useEffect(()=>{
-        const fn=(e)=>{
-          if(e.key==="Escape") onClose();
-          if(e.key==="ArrowRight") setI(v=>(v+1)%category.prompts.length);
-          if(e.key==="ArrowLeft") setI(v=>(v-1+category.prompts.length)%category.prompts.length);
-        };
-        window.addEventListener("keydown",fn);
-        document.body.style.overflow="hidden";
+        const fn=(e)=>{ if(e.key==="Escape") onClose(); if(e.key==="ArrowRight") setI(v=>(v+1)%category.prompts.length); if(e.key==="ArrowLeft") setI(v=>(v-1+category.prompts.length)%category.prompts.length); };
+        window.addEventListener("keydown",fn); document.body.style.overflow="hidden";
         return ()=>{window.removeEventListener("keydown",fn);document.body.style.overflow="";};
       },[onClose,category.prompts.length]);
 
       const total=Math.floor(elapsed/1000);
       const elapsedText=`${Math.floor(total/60)}:${String(total%60).padStart(2,"0")}`;
+      const min=Math.min(14,Math.floor(total/60));
+      const stage=Math.min(4,Math.floor(min/3));
+      const pct=Math.min(100,(elapsed/(15*60*1000))*100);
 
       return (
         <div className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4">
           <div className="glass-panel bg-slate-900 rounded-3xl w-full max-w-3xl overflow-hidden shadow-2xl">
+            <div className="h-1 bg-white/5"><div className="h-full bg-orange-500 transition-all" style={{width:`${pct}%`}}></div></div>
             <div className="flex items-center justify-between p-5 border-b border-white/10">
-              <h2 className="text-orange-400 font-medium">{category.title}</h2>
+              <div>
+                <div className="text-orange-400 font-medium">{category.title}</div>
+                <div className="text-xs text-slate-500 mt-1">15-minute guided prayer · {stages[stage][0]}</div>
+              </div>
               <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/5 grid place-items-center"><Icon name="x" size={20}/></button>
             </div>
-            <div className="min-h-[310px] p-8 md:p-12 flex items-center justify-center text-center">
+
+            <div className="px-6 pt-5">
+              <div className="grid grid-cols-5 gap-1">
+                {stages.map((s,n)=><div key={n} className={`h-1.5 rounded-full ${n<=stage?"bg-orange-500":"bg-white/10"}`}></div>)}
+              </div>
+              <div className="text-center mt-4">
+                <div className="text-xs uppercase tracking-[.2em] text-orange-400">{stages[stage][0]}</div>
+                <div className="text-sm text-slate-400 mt-1">{stages[stage][1]}</div>
+              </div>
+            </div>
+
+            <div className="min-h-[275px] p-8 md:p-12 flex items-center justify-center text-center">
               <p className="text-2xl md:text-4xl font-light leading-relaxed">“{category.prompts[i]}”</p>
             </div>
+
+            <div className="px-6 pb-2 text-center text-xs text-slate-500">
+              {SCRIPTURES[i%SCRIPTURES.length][0]} · “{SCRIPTURES[i%SCRIPTURES.length][1]}”
+            </div>
+
             <div className="p-5 bg-slate-950/50">
               <div className="flex justify-center gap-2 mb-6">
                 {category.prompts.map((_,n)=><button key={n} onClick={()=>setI(n)} className={`h-2 rounded-full ${n===i?"w-8 bg-orange-500":"w-2 bg-white/20"}`} aria-label={`Prayer prompt ${n+1}`}></button>)}
@@ -490,14 +585,92 @@
                   <button onClick={()=>setI(v=>(v+1)%category.prompts.length)} className="w-11 h-11 rounded-full hover:bg-white/10 grid place-items-center"><Icon name="chevron-right" size={24}/></button>
                 </div>
                 <div className="flex items-center gap-5">
-                  <div className="text-right">
-                    <div className="text-[10px] text-slate-500 uppercase tracking-wider">Praying for</div>
-                    <div className="font-mono text-slate-300">{elapsedText}</div>
-                  </div>
+                  <div className="text-right"><div className="text-[10px] text-slate-500 uppercase tracking-wider">Praying for</div><div className="font-mono text-slate-300">{elapsedText}</div></div>
                   <button onClick={onClose} className="h-11 px-5 rounded-xl bg-white/10 hover:bg-white/20">Finish Praying</button>
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      );
+    }
+
+    function ScriptureStrip(){
+      const [i,setI]=useState(0);
+      useEffect(()=>{const id=setInterval(()=>setI(v=>(v+1)%SCRIPTURES.length),9000);return()=>clearInterval(id)},[]);
+      return (
+        <div className="rounded-3xl border border-orange-500/15 bg-gradient-to-br from-orange-950/20 via-slate-900/60 to-slate-950 p-6 text-center">
+          <div className="text-[10px] uppercase tracking-[.25em] text-orange-400">Scripture for the hour</div>
+          <blockquote className="text-xl md:text-2xl font-light mt-3 leading-relaxed">“{SCRIPTURES[i][1]}”</blockquote>
+          <div className="text-sm text-slate-400 mt-3">{SCRIPTURES[i][0]}</div>
+        </div>
+      );
+    }
+
+    function PrayerWall(){
+      const [i,setI]=useState(0);
+      useEffect(()=>{const id=setInterval(()=>setI(v=>(v+1)%WALL.length),7000);return()=>clearInterval(id)},[]);
+      return (
+        <div className="glass-panel rounded-3xl p-6 text-center overflow-hidden">
+          <div className="text-[10px] uppercase tracking-[.25em] text-slate-500">Prayer Wall</div>
+          <div className="text-2xl md:text-3xl font-light mt-4 fade-cycle">“{WALL[i]}”</div>
+          <p className="text-xs text-slate-500 mt-3">A rotating reminder of the prayers our church is carrying together.</p>
+        </div>
+      );
+    }
+
+    function CompletionPanel({filled}){
+      return (
+        <div className="mt-10 rounded-3xl border border-orange-500/20 bg-gradient-to-br from-orange-950/30 via-slate-900 to-slate-950 p-8 md:p-12 text-center">
+          <div className="text-orange-400 text-xs uppercase tracking-[.28em]">24 Hours Complete</div>
+          <h2 className="text-4xl md:text-6xl font-light mt-3">One continuous chain of prayer.</h2>
+          <div className="grid sm:grid-cols-3 gap-4 mt-8 max-w-3xl mx-auto">
+            <div className="glass-panel rounded-2xl p-5"><div className="text-3xl font-bold">24</div><div className="text-xs text-slate-400 mt-1">Hours</div></div>
+            <div className="glass-panel rounded-2xl p-5"><div className="text-3xl font-bold">96</div><div className="text-xs text-slate-400 mt-1">Prayer periods</div></div>
+            <div className="glass-panel rounded-2xl p-5"><div className="text-3xl font-bold">{filled}</div><div className="text-xs text-slate-400 mt-1">Scheduled periods</div></div>
+          </div>
+          <p className="text-slate-400 mt-7">The 24-hour event may be complete, but prayer does not stop here.</p>
+        </div>
+      );
+    }
+
+    function SlotSignup({slot,onClose}){
+      const [status,setStatus]=useState("idle");
+      const [error,setError]=useState("");
+      const start=EVENT_START+slot*SLOT, end=start+SLOT;
+      const submit=async(e)=>{
+        e.preventDefault();
+        const form=e.currentTarget;
+        const data=new FormData(form);
+        const name=String(data.get("name")||"").trim();
+        if(!name){setError("Please enter your name.");return;}
+        setStatus("sending"); setError("");
+        try{
+          const payload=new FormData();
+          payload.append("name",name);
+          payload.append("message",`Prayer slot volunteer: ${formatTime(start)} – ${formatTime(end)} Eastern on October 1, 2026.`);
+          const response=await fetch("https://formspree.io/f/meaonlql",{method:"POST",headers:{"Accept":"application/json"},body:payload});
+          if(!response.ok) throw new Error("We couldn't send your signup. Please try again.");
+          setStatus("sent");
+        }catch(err){setStatus("error");setError(err.message||"We couldn't send your signup.");}
+      };
+      return (
+        <div className="fixed inset-0 z-[60] bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="glass-panel rounded-3xl p-6 md:p-8 w-full max-w-md">
+            <div className="flex justify-between gap-4">
+              <div><div className="text-teal-300 text-xs uppercase tracking-[.2em]">Open Prayer Slot</div><h3 className="text-2xl font-light mt-2">{formatTime(start)} – {formatTime(end)}</h3></div>
+              <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/5 grid place-items-center"><Icon name="x" size={20}/></button>
+            </div>
+            {status==="sent" ? (
+              <div className="text-center py-8"><Icon name="circle-check" size={38} className="text-emerald-400"/><h4 className="text-xl mt-4">Thank you for stepping into the prayer chain.</h4><p className="text-slate-400 text-sm mt-2">Your signup was sent to the church office.</p><button onClick={onClose} className="mt-6 px-5 py-3 rounded-xl bg-white/10">Close</button></div>
+            ) : (
+              <form onSubmit={submit} className="mt-6 space-y-4">
+                <p className="text-sm text-slate-400">Enter your name and we’ll send this volunteer slot directly to the church office.</p>
+                <input name="name" placeholder="Your name" className="w-full bg-slate-900/60 border border-slate-700 rounded-xl px-4 py-3 outline-none focus:border-teal-400/60"/>
+                {error&&<p className="text-red-400 text-sm">{error}</p>}
+                <button disabled={status==="sending"} className="w-full rounded-xl py-3.5 bg-teal-500 text-slate-950 font-bold hover:bg-teal-400 disabled:opacity-50">{status==="sending"?"Sending…":"I’ll Pray at This Time"}</button>
+              </form>
+            )}
           </div>
         </div>
       );
@@ -545,7 +718,7 @@
         <form onSubmit={submit} className="space-y-4">
           <div>
             <h3 className="text-2xl font-light">How can we pray for you?</h3>
-            <p className="text-slate-400 text-sm mt-1">Submit here without opening your email app. Requests are sent to the church office through Formspree.</p>
+            <p className="text-slate-400 text-sm mt-1">Send your request privately without opening your email app. It goes directly to the church office.</p>
           </div>
 
           <div>
