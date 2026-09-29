@@ -521,7 +521,7 @@
       const [step,setStep]=useState(0);
       const [auto,setAuto]=useState(true);
       const [elapsed,setElapsed]=useState(0);
-      const [secondsToNext,setSecondsToNext]=useState(30);
+      const [secondsToNext,setSecondsToNext]=useState(20);
       const timerRef=useRef(null);
       const stages=[
         ["Praise","Thank God for His goodness, grace, and mercy."],
@@ -533,9 +533,9 @@
 
       const move=(delta)=>{
         setStep(v=>(v+delta+category.prompts.length)%category.prompts.length);
-        setSecondsToNext(30);
+        setSecondsToNext(20);
       };
-      const goTo=(n)=>{ setStep(n); setSecondsToNext(30); };
+      const goTo=(n)=>{ setStep(n); setSecondsToNext(20); };
 
       useEffect(()=>{
         timerRef.current=setInterval(()=>{
@@ -544,7 +544,7 @@
             setSecondsToNext(v=>{
               if(v<=1){
                 setStep(s=>(s+1)%category.prompts.length);
-                return 30;
+                return 20;
               }
               return v-1;
             });
