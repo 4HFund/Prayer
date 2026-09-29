@@ -62,34 +62,59 @@
     ];
 
     const CATEGORIES = [
-      {title:"Our Church",desc:"Unity, vision, and spiritual growth",prompts:[
-        "Pray for a spirit of unity to bind our congregation together in love.",
-        "Ask God to give clear vision and direction to our pastoral team.",
-        "Pray that every member experiences deep, transformative spiritual growth.",
-        "Lift up our volunteer teams, asking for joy and endurance in their service."
-      ]},
-      {title:"Our Community",desc:"Schools, leaders, and lasting peace",prompts:[
-        "Ask for protection and wisdom for our local teachers, students, and administrators.",
-        "Pray for city officials and first responders to have discernment and safety.",
-        "Pray that our church would be a beacon of hope and practical help in our neighborhoods.",
-        "Ask for peace and reconciliation in areas of our community experiencing division."
-      ]},
-      {title:"Families",desc:"Marriages, children, and relationships",prompts:[
-        "Pray for marriages to be strengthened, characterized by grace and mutual respect.",
-        "Lift up parents, asking for patience and wisdom in raising the next generation.",
-        "Pray for prodigal children to experience God's love and return home.",
-        "Ask for comfort and community support for single parents and those navigating loss."
-      ]},
-      {title:"Healing",desc:"Physical, mental, and emotional restoration",prompts:[
-        "Lift up those in our church family battling chronic illness or sudden medical crises.",
-        "Pray for individuals struggling with anxiety, depression, or other mental health challenges.",
-        "Ask God to provide comfort and peace that surpasses understanding to those grieving.",
-        "Pray for doctors, nurses, and caregivers to have stamina and wisdom."
-      ]}
-    ];
+  {
+    "title": "Healing and recovery",
+    "desc": "Bring these people before God by name",
+    "prompts": [
+      "Pray for miraculous healing for Sam and Shelba Hubbard.",
+      "Pray for healing for Emily Cook.",
+      "Pray for Joyce Gibson’s ankle and foot, Margie Mitchell’s back and spine, and Cheryl Penrod’s migraines.",
+      "Pray for Shirley Fiber, Susan Geismann’s husband John, and Peggy as they face cancer and treatment.",
+      "Pray for Denise Aracich as she awaits an aortic valve replacement and deals with lung problems.",
+      "Pray for Ken’s full recovery from pneumonia.",
+      "Pray for Jerry Miller’s lower back, and Paula Thomas’s lower back and liver.",
+      "Pray for Lisa Doyle’s mother living with dementia and Parkinson’s."
+    ]
+  },
+  {
+    "title": "Families and freedom",
+    "desc": "Relationships, provision, and new life",
+    "prompts": [
+      "Pray for Logan and Kristen Urban as they face infertility.",
+      "Pray for Nathan, Sam, and Lisa Doyle’s sons to find freedom from addiction.",
+      "Pray for sobriety for the unnamed woman’s husband and wisdom for the unnamed grandson’s decisions.",
+      "Pray for Lisa Doyle’s marriage and financial relief for the Riggs family.",
+      "Pray for JJ and Rowanna Bennett: patience and understanding as they care for a foster child, and God’s guidance.",
+      "Pray that Jack Haizlett grows into a man of God and that Molly Haizlett is restored to Jim and JoEllen’s family.",
+      "Lift up Grant and Delia Vargo."
+    ]
+  },
+  {
+    "title": "Church and mission",
+    "desc": "The Foundery and our neighbors",
+    "prompts": [
+      "Give thanks for the Lord’s goodness, grace, and mercy as you begin.",
+      "Pray for supernatural provision and fruitfulness for Pastor Bobby and Sidney’s Liberia mission trip, October 16–26.",
+      "Pray that the Lord brings our next children’s pastor soon, and guides those serving in children’s ministry.",
+      "Pray for unity and spiritual growth at The Foundery Church.",
+      "Pray that many lives are changed through Cornerstone Christian Academy.",
+      "Lift up Brooke School District and its families.",
+      "Pray for a new job opportunity for Bob Greathouse."
+    ]
+  },
+  {
+    "title": "Salvation",
+    "desc": "People seeking God",
+    "prompts": [
+      "Pray for Zack and Vanessa Richardson to know Jesus.",
+      "Pray for Glenn’s salvation.",
+      "Pray for Elisa Thomas’s salvation."
+    ]
+  }
+];
 
     const GENERAL = {
-      title:"General Prayer",
+      title:"October 1 Prayer List",
       prompts:CATEGORIES.flatMap(c=>c.prompts)
     };
 
@@ -120,9 +145,9 @@
 
       const state = now < EVENT_START ? "before" : now >= EVENT_END ? "completed" : "in-progress";
       const elapsed = Math.max(0, Math.min(EVENT_END-EVENT_START, now-EVENT_START));
-      const idx = Math.max(0, Math.min(23, Math.floor(elapsed/HOUR)));
+      const idx = Math.max(0, Math.min(SCHEDULE.length-1, Math.floor(elapsed/SLOT)));
       const progress = elapsed/(EVENT_END-EVENT_START);
-      const nextBoundary = EVENT_START + (idx+1)*HOUR;
+      const nextBoundary = EVENT_START + (idx+1)*SLOT;
 
       const closeSession = () => {
         setSession(null);
@@ -149,7 +174,7 @@
                 </div>
               </div>
               <h1 className="text-3xl md:text-5xl font-light tracking-tight"><strong>24 HOURS</strong> OF PRAYER</h1>
-              <p className="text-slate-300 mt-3">One Church. One Prayer. Every Hour.</p>
+              <p className="text-slate-300 mt-3">One Church. One Prayer. Every 15 Minutes.</p>
               <p className="text-orange-400 uppercase tracking-[.22em] text-xs font-semibold mt-2">Sundays Are Just the Start.</p>
               <p className="text-slate-500 text-xs mt-4">The Foundery Church · Wellsburg, West Virginia</p>
             </header>
@@ -172,14 +197,15 @@
                   <div className="flex items-end justify-between mb-4 gap-3">
                     <h2 className="text-2xl font-light">Prayer Schedule</h2>
                     <span className="text-xs uppercase tracking-widest text-slate-400 bg-slate-900 border border-slate-800 rounded-full px-3 py-1">
-                      {state==="before" ? "Upcoming" : state==="completed" ? "Completed" : `Hour ${idx+1} of 24`}
+                      {state==="before" ? "Upcoming" : state==="completed" ? "Completed" : `Slot ${idx+1} of 96`}
                     </span>
                   </div>
                   <Timeline state={state} index={idx}/>
                 </div>
 
                 <div>
-                  <h2 className="text-2xl font-light mb-4">Prayer Focus</h2>
+                  <h2 className="text-2xl font-light mb-2">Prayer Focus</h2>
+                  <p className="text-slate-400 text-sm mb-4">Begin each 15 minute session with gratitude for God’s goodness, grace, and mercy. Pray through these requests, then add your own. James 5:13–16.</p>
                   <div className="grid sm:grid-cols-2 gap-4">
                     {CATEGORIES.map((c,i)=>(
                       <button key={i} onClick={()=>setSession(c)} className="glass-panel rounded-2xl p-5 text-left hover:border-orange-500/50 transition">
@@ -207,14 +233,16 @@
 
     function PrayerOrbit({state,index,progress,now,nextBoundary}) {
       const current = SCHEDULE[index];
-      const next = index < 23 ? SCHEDULE[index+1] : null;
-      const start = EVENT_START + index*HOUR;
-      const end = start + HOUR;
+      const next = index < SCHEDULE.length-1 ? SCHEDULE[index+1] : null;
+      const start = EVENT_START + index*SLOT;
+      const end = start + SLOT;
       const cx=150, cy=150, radius=126;
       // SVG pointer starts at 12 o'clock. rotate(0) = 12 AM, 90 = 6 AM, 180 = 12 PM, 270 = 6 PM.
       // No -90 offset is needed because SVG rotation is applied to an element already positioned at 12 o'clock.
       const clockDate = new Date(now);
-      const clockHours = clockDate.getHours() + clockDate.getMinutes()/60 + clockDate.getSeconds()/3600;
+      const easternParts = new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",hour:"numeric",minute:"numeric",second:"numeric",hourCycle:"h23"}).formatToParts(clockDate);
+      const eastern = Object.fromEntries(easternParts.map(p=>[p.type,Number(p.value)]));
+      const clockHours = eastern.hour + eastern.minute/60 + eastern.second/3600;
       const angle = state==="in-progress" ? clockHours * 15 : 0;
       const handAngle = angle;
       const marks = Array.from({length:24},(_,i)=>i);
@@ -236,7 +264,7 @@
                 const major=i%6===0;
                 const x1=cx+Math.cos(a)*(major?111:116), y1=cy+Math.sin(a)*(major?111:116);
                 const x2=cx+Math.cos(a)*124, y2=cy+Math.sin(a)*124;
-                return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke={i<=index && state!=="before" ? "#f97316" : "rgba(255,255,255,.25)"} strokeWidth={major?3:1.5} strokeLinecap="round"/>;
+                return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke={i<=Math.floor(index/4) && state!=="before" ? "#f97316" : "rgba(255,255,255,.25)"} strokeWidth={major?3:1.5} strokeLinecap="round"/>;
               })}
               {state!=="before" && <circle cx={cx} cy={cy} r={radius} fill="none" stroke="url(#sunArc)" strokeWidth="5" strokeLinecap="round" pathLength="100" strokeDasharray={`${progress*100} 100`} transform="rotate(-90 150 150)" filter="url(#glow)"/>}
               <g transform={`rotate(${angle} 150 150)`}>
@@ -265,21 +293,21 @@
                   <span className="w-2 h-2 rounded-full bg-orange-500 pulse-dot"></span> Praying Now
                 </div>
                 <div className="text-2xl md:text-3xl font-bold tabular-nums text-white mb-1">{formatTime(now)}</div>
-                <h3 className="text-base md:text-lg font-semibold leading-tight">{current}</h3>
+                <h3 className="text-base md:text-lg font-semibold leading-tight">{current || "Open prayer slot"}</h3>
                 <p className="text-slate-300 text-[11px] mt-2 tracking-widest uppercase">{formatTime(start)} – {formatTime(end)}</p>
                 <div className="mt-3 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-300 text-[10px] tracking-wider">
-                  HOUR {index+1} · {Math.round(progress*100)}% COMPLETE
+                  SLOT {index+1} OF 96 · {Math.round(progress*100)}% COMPLETE
                 </div>
               </>}
-              {state==="before" && <><h3 className="text-2xl font-light">Begins Soon</h3><p className="text-orange-400 mt-2 text-sm">September 29, 2026</p><p className="text-slate-400 text-xs mt-1">12:00 AM Eastern</p></>}
+              {state==="before" && <><h3 className="text-2xl font-light">Begins Soon</h3><p className="text-orange-400 mt-2 text-sm">October 1, 2026</p><p className="text-slate-400 text-xs mt-1">12:00 AM Eastern</p></>}
               {state==="completed" && <><Icon name="check" size={26} className="text-orange-400 mb-2"/><h3 className="text-2xl font-light">24 Hours Complete</h3><p className="text-slate-400 text-xs mt-2">The chain of prayer is complete.</p></>}
             </div>
           </div>
 
           <div className="min-h-14 text-center mt-1">
             {state==="in-progress" && (next
-              ? <><p className="text-sm text-slate-300">Next: <span className="text-white font-medium">{next}</span></p><p className="text-xs text-orange-400/80 mt-1 font-mono">HANDOFF IN {countdown(nextBoundary-now)}</p></>
-              : <><p className="text-sm text-slate-300">Our final hour</p><p className="text-xs text-orange-400/80 mt-1 font-mono">ENDS IN {countdown(EVENT_END-now)}</p></>
+              ? <><p className="text-sm text-slate-300">Next: <span className="text-white font-medium">{next || "Open prayer slot"}</span></p><p className="text-xs text-orange-400/80 mt-1 font-mono">HANDOFF IN {countdown(nextBoundary-now)}</p></>
+              : <><p className="text-sm text-slate-300">Our final prayer slot</p><p className="text-xs text-orange-400/80 mt-1 font-mono">ENDS IN {countdown(EVENT_END-now)}</p></>
             )}
             {state==="before" && <p className="text-sm text-slate-400">Event starts in <span className="text-white font-mono">{countdown(EVENT_START-now)}</span></p>}
           </div>
@@ -308,8 +336,8 @@
                     {past ? <Icon name="circle-check" size={22} className="text-slate-500"/> : <span className={`w-3 h-3 rounded-full ${current?"bg-orange-500":"bg-slate-700"}`}></span>}
                   </div>
                   <div className="min-w-0 flex-1 flex items-center justify-between gap-4">
-                    <span className={`truncate ${current?"font-semibold text-white":"text-slate-200"}`}>{name}</span>
-                    <span className={`font-mono text-sm shrink-0 ${current?"text-orange-400":"text-slate-500"}`}>{formatTime(EVENT_START+i*HOUR)}</span>
+                    <span className={`truncate ${current?"font-semibold text-white":"text-slate-200"}`}>{name || "Open prayer slot"}</span>
+                    <span className={`font-mono text-sm shrink-0 ${current?"text-orange-400":"text-slate-500"}`}>{formatTime(EVENT_START+i*SLOT)}</span>
                   </div>
                 </div>
               );
