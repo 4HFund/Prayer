@@ -514,30 +514,29 @@
         const request=String(data.get("request")||"").trim();
         const name=String(data.get("name")||"").trim();
         if(!request){setError("Please enter a prayer request.");return;}
-        if(data.get("_honey")) return;
+        if(data.get("_honey")) {setError("We couldn't send your request. Please try again.");return;}
         setError("");
         setStatus("sending");
 
         try {
-          const response=await fetch("https://formsubmit.co/ajax/office@thefoundery.church",{
+          const payload=new FormData();
+          payload.append("name",name || "Anonymous");
+          payload.append("message",request);
+          const response=await fetch("https://formspree.io/f/meaonlql",{
             method:"POST",
-            headers:{"Content-Type":"application/json","Accept":"application/json"},
-            body:JSON.stringify({
-              name:name || "Anonymous",
-              message:request,
-              _subject:"New Prayer Request — The Foundery Church",
-              _url:"https://4hfund.github.io/Prayer/"
-            })
+            headers:{"Accept":"application/json"},
+            body:payload
           });
-          const result=await response.json();
-          if(!response.ok || result.success===false || result.success==="false") {
-            throw new Error("Submission was not accepted.");
+          if(!response.ok) {
+            if(response.status===429) throw new Error("Too many requests right now. Please wait a minute and try again.");
+            const result=await response.json().catch(()=>null);
+            throw new Error(result?.errors?.map(e=>e.message).join(" ") || "The form service couldn't accept your request. Please try again.");
           }
           setStatus("sent");
           form.reset();
-        } catch {
+        } catch(err) {
           setStatus("error");
-          setError("We couldn't send your request. Please try again, or email office@thefoundery.church directly.");
+          setError(err.message || "We couldn't send your request. Please try again.");
         }
       };
 
@@ -545,7 +544,7 @@
         <form onSubmit={submit} className="space-y-4">
           <div>
             <h3 className="text-2xl font-light">How can we pray for you?</h3>
-            <p className="text-slate-400 text-sm mt-1">Submit here without opening your email app. Requests are sent to the church office through FormSubmit.</p>
+            <p className="text-slate-400 text-sm mt-1">Submit here without opening your email app. Requests are sent to the church office through Formspree.</p>
           </div>
 
           <div>
