@@ -40,11 +40,20 @@
     .prompt-enter { animation:promptEnter .45s cubic-bezier(.2,.8,.2,1); }
     .soft-glow { box-shadow:0 0 0 1px rgba(251,146,60,.08),0 18px 70px rgba(249,115,22,.08); }
     .count-ring { filter:drop-shadow(0 0 6px rgba(251,146,60,.32)); }
+    .chain-light { animation:chainLight 3.6s ease-in-out infinite; }
+    .open-beacon { animation:openBeacon 2.2s ease-in-out infinite; }
+    .orbit-breathe { animation:orbitBreathe 4s ease-in-out infinite; }
+    .orbit-rotate { animation:orbitRotate 18s linear infinite; transform-origin:center; }
+    .count-capsule { background:linear-gradient(180deg,rgba(30,41,59,.8),rgba(15,23,42,.6)); box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 10px 30px rgba(0,0,0,.2); }
     @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.45;transform:scale(1.35)} }
     @keyframes floatSoft { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
     @keyframes shimmer { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
     @keyframes fadeCycle { 0%,100%{opacity:.55} 50%{opacity:1} }
     @keyframes promptEnter { from{opacity:0;transform:translateY(8px) scale(.99)} to{opacity:1;transform:translateY(0) scale(1)} }
+    @keyframes chainLight { 0%,100%{filter:brightness(.85);opacity:.72} 50%{filter:brightness(1.5);opacity:1} }
+    @keyframes openBeacon { 0%,100%{box-shadow:0 0 6px rgba(45,212,191,.25)} 50%{box-shadow:0 0 18px rgba(45,212,191,.85)} }
+    @keyframes orbitBreathe { 0%,100%{box-shadow:inset 0 0 30px rgba(249,115,22,.05),0 0 0 rgba(249,115,22,0)} 50%{box-shadow:inset 0 0 48px rgba(249,115,22,.12),0 0 45px rgba(249,115,22,.10)} }
+    @keyframes orbitRotate { to{transform:rotate(360deg)} }
     button, input, textarea { -webkit-tap-highlight-color: transparent; }
     button:focus-visible, input:focus-visible, textarea:focus-visible { outline:2px solid #fb923c; outline-offset:2px; }
     @media (prefers-reduced-motion: reduce) {
@@ -256,6 +265,11 @@
       }).format(new Date(ms));
     }
 
+    function countdownParts(ms) {
+      const s=Math.max(0,Math.ceil(ms/1000));
+      return {h:Math.floor(s/3600),m:Math.floor((s%3600)/60),s:s%60};
+    }
+
     function countdown(ms) {
       if (ms <= 0) return "00:00";
       const s = Math.ceil(ms/1000);
@@ -388,29 +402,46 @@
     }
 
     function PrayerChain({state,index,filled,open}) {
+      const percent=Math.round((filled/96)*100);
       return (
-        <div className="glass-panel rounded-3xl p-5 md:p-6">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div>
-              <div className="text-xs tracking-[.2em] uppercase text-orange-400">The Prayer Chain</div>
-              <div className="text-2xl md:text-3xl font-light mt-1">{filled} of 96 slots covered</div>
-              <p className="text-slate-400 text-sm mt-1">{open===0 ? "Every prayer period is covered." : `${open} open ${open===1?"spot":"spots"} still need someone.`}</p>
+        <div className="glass-panel soft-glow rounded-3xl p-5 md:p-6 relative overflow-hidden">
+          <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_80%_15%,rgba(45,212,191,.07),transparent_32%),radial-gradient(circle_at_15%_100%,rgba(249,115,22,.07),transparent_34%)]"></div>
+          <div className="relative">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+              <div>
+                <div className="text-xs tracking-[.28em] uppercase text-orange-400">The Prayer Chain</div>
+                <div className="text-3xl md:text-4xl font-light mt-2"><span className="text-white">{filled}</span> <span className="text-slate-400">of 96 slots covered</span></div>
+                <p className="text-slate-400 text-sm mt-2">{open===0 ? "Every prayer period is covered." : `${open} open ${open===1?"spot":"spots"} still need someone.`}</p>
+              </div>
+              <div className="md:text-right min-w-[150px]">
+                <div className="text-2xl font-light text-white">{percent}%</div>
+                <div className="text-[10px] uppercase tracking-[.2em] text-slate-500">Scheduled</div>
+              </div>
             </div>
-            <div className="text-sm text-slate-400">{Math.round((filled/96)*100)}% scheduled</div>
-          </div>
-          <div className="grid gap-1 mt-5" style={{gridTemplateColumns:"repeat(24,minmax(0,1fr))"}}>
-            {SCHEDULE.map((name,i)=>{
-              let cls=name?"bg-slate-700":"bg-teal-400";
-              if(state==="completed" || (state==="in-progress" && i<index)) cls="bg-orange-700";
-              if(state==="in-progress" && i===index) cls="bg-orange-400 shadow-[0_0_16px_rgba(251,146,60,.75)] pulse-dot";
-              return <div key={i} title={`${formatTime(EVENT_START+i*SLOT)} · ${name||"Open"}`} className={`h-2.5 rounded-full ${cls}`}></div>
-            })}
-          </div>
-          <div className="flex flex-wrap gap-x-5 gap-y-2 text-[11px] mt-4 text-slate-500">
-            {state!=="before" && <span><i className="inline-block w-2 h-2 rounded-full bg-orange-700 mr-1"></i>Completed</span>}
-            {state==="in-progress" && <span><i className="inline-block w-2 h-2 rounded-full bg-orange-400 mr-1"></i>Now</span>}
-            <span><i className="inline-block w-2 h-2 rounded-full bg-slate-700 mr-1"></i>Scheduled</span>
-            <span className="text-teal-300"><i className="inline-block w-2 h-2 rounded-full bg-teal-400 mr-1"></i>Open</span>
+
+            <div className="mt-5 h-1.5 rounded-full bg-white/5 overflow-hidden">
+              <div className="h-full rounded-full bg-gradient-to-r from-orange-700 via-orange-400 to-teal-300 transition-all duration-700 shadow-[0_0_14px_rgba(251,146,60,.35)]" style={{width:`${percent}%`}}></div>
+            </div>
+
+            <div className="grid gap-1.5 mt-6" style={{gridTemplateColumns:"repeat(24,minmax(0,1fr))"}}>
+              {SCHEDULE.map((name,i)=>{
+                const completed=state==="completed" || (state==="in-progress" && i<index);
+                const current=state==="in-progress" && i===index;
+                const openSlot=!name;
+                let cls="bg-slate-700/90";
+                if(openSlot) cls="bg-teal-400 open-beacon";
+                if(completed) cls="bg-orange-700 shadow-[0_0_8px_rgba(194,65,12,.28)]";
+                if(current) cls="bg-orange-300 shadow-[0_0_22px_rgba(251,146,60,.95)] pulse-dot";
+                const delay={animationDelay:`${(i%24)*70}ms`};
+                return <div key={i} title={`${formatTime(EVENT_START+i*SLOT)} · ${name||"Open"}`} style={name&&!current&&!completed?delay:undefined} className={`h-3 rounded-full transition-all ${cls} ${name&&!current&&!completed?"chain-light":""}`}></div>
+              })}
+            </div>
+            <div className="flex flex-wrap gap-x-5 gap-y-2 text-[11px] mt-5 text-slate-500">
+              {state!=="before" && <span><i className="inline-block w-2 h-2 rounded-full bg-orange-700 mr-1"></i>Completed</span>}
+              {state==="in-progress" && <span><i className="inline-block w-2 h-2 rounded-full bg-orange-300 mr-1 shadow-[0_0_8px_rgba(251,146,60,.8)]"></i>Now</span>}
+              <span><i className="inline-block w-2 h-2 rounded-full bg-slate-700 mr-1"></i>Scheduled</span>
+              <span className="text-teal-300"><i className="inline-block w-2 h-2 rounded-full bg-teal-400 mr-1 shadow-[0_0_8px_rgba(45,212,191,.7)]"></i>Open</span>
+            </div>
           </div>
         </div>
       );
@@ -439,12 +470,17 @@
             <div className="absolute inset-[5%] rounded-full bg-gradient-to-br from-slate-800/70 via-slate-950 to-black border border-white/10 shadow-[0_0_80px_rgba(249,115,22,.10),inset_0_0_45px_rgba(255,255,255,.035)]"></div>
             <svg viewBox="0 0 300 300" className="absolute inset-0 w-full h-full drop-shadow-2xl">
               <defs>
-                <radialGradient id="dialFace"><stop offset="0%" stopColor="#172033"/><stop offset="72%" stopColor="#070d19"/><stop offset="100%" stopColor="#020617"/></radialGradient>
+                <radialGradient id="dialFace"><stop offset="0%" stopColor="#172033"/><stop offset="68%" stopColor="#070d19"/><stop offset="100%" stopColor="#020617"/></radialGradient>
+                <linearGradient id="dayNight" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#0f172a"/><stop offset="23%" stopColor="#4338ca" stopOpacity=".22"/><stop offset="42%" stopColor="#f59e0b" stopOpacity=".18"/><stop offset="58%" stopColor="#fbbf24" stopOpacity=".14"/><stop offset="78%" stopColor="#ea580c" stopOpacity=".20"/><stop offset="100%" stopColor="#020617"/></linearGradient>
+                <radialGradient id="centerAura"><stop offset="0%" stopColor="#fb923c" stopOpacity=".15"/><stop offset="55%" stopColor="#f97316" stopOpacity=".035"/><stop offset="100%" stopColor="#020617" stopOpacity="0"/></radialGradient>
                 <linearGradient id="sunArc" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#fb923c"/><stop offset=".55" stopColor="#f97316"/><stop offset="1" stopColor="#c2410c"/></linearGradient>
                 <filter id="glow"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
               </defs>
               <circle cx={cx} cy={cy} r="134" fill="url(#dialFace)" stroke="rgba(255,255,255,.10)" strokeWidth="1"/>
+              <circle cx={cx} cy={cy} r="132" fill="url(#dayNight)" opacity=".9"/>
+              <circle cx={cx} cy={cy} r="92" fill="url(#centerAura)" className="orbit-breathe"/>
               <circle cx={cx} cy={cy} r={radius} fill="none" stroke="rgba(255,255,255,.06)" strokeWidth="10"/>
+              <circle cx={cx} cy={cy} r="130" fill="none" stroke="rgba(251,146,60,.16)" strokeWidth="1" strokeDasharray="1 12" className="orbit-rotate"/>
               {marks.map(i=>{
                 const a=(i/24)*Math.PI*2-Math.PI/2;
                 const major=i%6===0;
@@ -454,8 +490,9 @@
               })}
               {state!=="before" && <circle cx={cx} cy={cy} r={radius} fill="none" stroke="url(#sunArc)" strokeWidth="5" strokeLinecap="round" pathLength="100" strokeDasharray={`${progress*100} 100`} transform="rotate(-90 150 150)" filter="url(#glow)"/>}
               <g transform={`rotate(${angle} 150 150)`}>
+                <circle cx="150" cy="24" r="15" fill="#f97316" fillOpacity=".08" className="orbit-breathe"/>
                 <circle cx="150" cy="24" r="6" fill="#fff" filter="url(#glow)"/>
-                <circle cx="150" cy="24" r="12" fill="none" stroke="#f97316" strokeOpacity=".35"/>
+                <circle cx="150" cy="24" r="12" fill="none" stroke="#f97316" strokeOpacity=".5"/>
               </g>
               {state==="in-progress" && <g transform={`rotate(${handAngle} 150 150)`}>
                 <line x1="150" y1="150" x2="150" y2="62" stroke="url(#sunArc)" strokeWidth="3" strokeLinecap="round" filter="url(#glow)"/>
@@ -473,7 +510,7 @@
               <text x="76" y="78" textAnchor="middle" fill="#94a3b8" fontSize="8" fontWeight="600">9 PM</text>
             </svg>
 
-            <div className="absolute inset-[23%] rounded-full bg-slate-950/85 border border-white/10 shadow-[inset_0_0_30px_rgba(249,115,22,.06)] flex flex-col items-center justify-center text-center px-5">
+            <div className="absolute inset-[23%] rounded-full bg-slate-950/85 border border-orange-400/10 orbit-breathe flex flex-col items-center justify-center text-center px-5">
               {state==="in-progress" && <>
                 <div className="flex items-center gap-2 text-orange-400 text-[10px] font-bold tracking-[.2em] uppercase mb-3">
                   <span className="w-2 h-2 rounded-full bg-orange-500 pulse-dot"></span> Praying Now
@@ -496,7 +533,15 @@
               ? <><p className="text-sm text-slate-300">Next: <span className={next?"text-white font-medium":"text-teal-300 font-semibold"}>{next || "Open prayer slot — needs someone"}</span></p><p className="text-xs text-orange-400/80 mt-1 font-mono">HANDOFF IN {countdown(nextBoundary-now)}</p></>
               : <><p className="text-sm text-slate-300">Our final prayer slot</p><p className="text-xs text-orange-400/80 mt-1 font-mono">ENDS IN {countdown(EVENT_END-now)}</p></>
             )}
-            {state==="before" && <p className="text-sm text-slate-400">Event starts in <span className="text-white font-mono">{countdown(EVENT_START-now)}</span></p>}
+            {state==="before" && (()=>{const t=countdownParts(EVENT_START-now);return <div className="mt-3">
+              <div className="text-[10px] uppercase tracking-[.28em] text-orange-400 mb-2">The Chain Begins In</div>
+              <div className="flex items-center justify-center gap-2">
+                {[[t.h,"HRS"],[t.m,"MIN"],[t.s,"SEC"]].map(([v,label])=><div key={label} className="count-capsule rounded-xl px-3 py-2 min-w-[62px] border border-white/5">
+                  <div className="font-mono text-xl text-white tabular-nums">{String(v).padStart(2,"0")}</div>
+                  <div className="text-[8px] tracking-[.18em] text-slate-500 mt-0.5">{label}</div>
+                </div>)}
+              </div>
+            </div>})()}
           </div>
         </div>
       );
