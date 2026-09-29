@@ -1,808 +1,423 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { 
-  CheckCircle2, 
-  Share2, 
-  Copy, 
-  X,
-  Play,
-  Pause,
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  ArrowRight
-} from 'lucide-react';
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#020617" />
+  <title>24 Hours of Prayer | The Foundery Church</title>
 
-const EVENT_CONFIG = {
-  // Configured for Sept 29, 2026 at Midnight Eastern Time
-  startTime: new Date('2026-09-29T00:00:00-04:00').getTime(),
-  timeZone: 'America/New_York',
-  durationMs: 24 * 60 * 60 * 1000,
-  schedule: [
-    "Sarah Mitchell", "David Kim", "Emily Rodriguez", "Michael Turner", 
-    "Jessica Lee", "Brian Hayes", "Amanda Foster", "Robert Chen", 
-    "Sidney Prescott", "Amy Williams", "David O'Connor", "Lisa Barnes", 
-    "Mark Stevens", "Anna Kowalski", "James Thompson", "Rachel Green", 
-    "John Martinez", "Maria Garcia", "Peter Wright", "Chloe Bennett", 
-    "Daniel Evans", "Grace Taylor", "Kevin White", "Olivia Martin"
-  ],
-  categories: [
-    { 
-      id: 'church',
-      title: "Our Church", 
-      desc: "Unity, vision, and spiritual growth",
-      prompts: [
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+
+  <style>
+    html { background:#020617; }
+    body { margin:0; background:#020617; color:#f8fafc; font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.62);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,.06);
+    }
+    .scrollbar-custom::-webkit-scrollbar { width:6px; }
+    .scrollbar-custom::-webkit-scrollbar-track { background:rgba(0,0,0,.2); border-radius:4px; }
+    .scrollbar-custom::-webkit-scrollbar-thumb { background:rgba(255,255,255,.12); border-radius:4px; }
+    .pulse-dot { animation:pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.45;transform:scale(1.35)} }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const {useEffect, useRef, useState} = React;
+
+    const Icon = ({name, size=20, className=""}) => {
+      const ref = useRef(null);
+      useEffect(() => {
+        if (window.lucide && ref.current) {
+          ref.current.innerHTML = "";
+          const node = document.createElement("i");
+          node.setAttribute("data-lucide", name);
+          ref.current.appendChild(node);
+          window.lucide.createIcons({attrs:{width:size,height:size}, nameAttr:"data-lucide"});
+        }
+      }, [name,size]);
+      return <span ref={ref} className={className} aria-hidden="true" />;
+    };
+
+    const EVENT_START = new Date("2026-09-29T00:00:00-04:00").getTime();
+    const EVENT_END = EVENT_START + 24 * 60 * 60 * 1000;
+    const HOUR = 60 * 60 * 1000;
+
+    const SCHEDULE = [
+      "Sarah Mitchell","David Kim","Emily Rodriguez","Michael Turner",
+      "Jessica Lee","Brian Hayes","Amanda Foster","Robert Chen",
+      "Sidney Prescott","Amy Williams","David O'Connor","Lisa Barnes",
+      "Mark Stevens","Anna Kowalski","James Thompson","Rachel Green",
+      "John Martinez","Maria Garcia","Peter Wright","Chloe Bennett",
+      "Daniel Evans","Grace Taylor","Kevin White","Olivia Martin"
+    ];
+
+    const CATEGORIES = [
+      {title:"Our Church",desc:"Unity, vision, and spiritual growth",prompts:[
         "Pray for a spirit of unity to bind our congregation together in love.",
         "Ask God to give clear vision and direction to our pastoral team.",
         "Pray that every member experiences deep, transformative spiritual growth.",
         "Lift up our volunteer teams, asking for joy and endurance in their service."
-      ]
-    },
-    { 
-      id: 'community',
-      title: "Our Community", 
-      desc: "Schools, leaders, and lasting peace",
-      prompts: [
+      ]},
+      {title:"Our Community",desc:"Schools, leaders, and lasting peace",prompts:[
         "Ask for protection and wisdom for our local teachers, students, and administrators.",
         "Pray for city officials and first responders to have discernment and safety.",
         "Pray that our church would be a beacon of hope and practical help in our neighborhoods.",
         "Ask for peace and reconciliation in areas of our community experiencing division."
-      ]
-    },
-    { 
-      id: 'families',
-      title: "Families", 
-      desc: "Marriages, children, and relationships",
-      prompts: [
+      ]},
+      {title:"Families",desc:"Marriages, children, and relationships",prompts:[
         "Pray for marriages to be strengthened, characterized by grace and mutual respect.",
         "Lift up parents, asking for patience and wisdom in raising the next generation.",
         "Pray for prodigal children to experience God's love and return home.",
         "Ask for comfort and community support for single parents and those navigating loss."
-      ]
-    },
-    { 
-      id: 'healing',
-      title: "Healing", 
-      desc: "Physical, mental, and emotional restoration",
-      prompts: [
+      ]},
+      {title:"Healing",desc:"Physical, mental, and emotional restoration",prompts:[
         "Lift up those in our church family battling chronic illness or sudden medical crises.",
         "Pray for individuals struggling with anxiety, depression, or other mental health challenges.",
         "Ask God to provide comfort and peace that surpasses understanding to those grieving.",
         "Pray for doctors, nurses, and caregivers to have stamina and wisdom."
-      ]
+      ]}
+    ];
+
+    const GENERAL = {
+      title:"General Prayer",
+      prompts:CATEGORIES.flatMap(c=>c.prompts)
+    };
+
+    function formatTime(ms) {
+      return new Intl.DateTimeFormat("en-US",{
+        timeZone:"America/New_York",hour:"numeric",minute:"2-digit"
+      }).format(new Date(ms));
     }
-  ]
-};
 
-// A generic mixed category for the main button
-const GENERAL_CATEGORY = {
-  id: 'general',
-  title: "General Prayer",
-  prompts: EVENT_CONFIG.categories.flatMap(c => c.prompts).sort(() => 0.5 - Math.random()).slice(0, 8)
-};
+    function countdown(ms) {
+      if (ms <= 0) return "00:00";
+      const s = Math.ceil(ms/1000);
+      const h = Math.floor(s/3600);
+      const m = Math.floor((s%3600)/60);
+      const sec = s%60;
+      return h>0 ? `${h}h ${m}m ${String(sec).padStart(2,"0")}s` : `${String(m).padStart(2,"0")}:${String(sec).padStart(2,"0")}`;
+    }
 
-const formatEventTime = (timestamp) => {
-  return new Intl.DateTimeFormat('en-US', {
-    timeZone: EVENT_CONFIG.timeZone,
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(new Date(timestamp));
-};
+    function App() {
+      const [now,setNow] = useState(Date.now());
+      const [session,setSession] = useState(null);
+      const [thanks,setThanks] = useState(false);
 
-const formatEventDate = (timestamp) => {
-  return new Intl.DateTimeFormat('en-US', {
-    timeZone: EVENT_CONFIG.timeZone,
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric'
-  }).format(new Date(timestamp));
-};
+      useEffect(()=>{
+        const id=setInterval(()=>setNow(Date.now()),1000);
+        return ()=>clearInterval(id);
+      },[]);
 
-const getEventState = (nowMs) => {
-  const { startTime, durationMs } = EVENT_CONFIG;
-  const endTime = startTime + durationMs;
-  
-  if (nowMs < startTime) return 'before';
-  if (nowMs >= endTime) return 'completed';
-  return 'in-progress';
-};
+      const state = now < EVENT_START ? "before" : now >= EVENT_END ? "completed" : "in-progress";
+      const elapsed = Math.max(0, Math.min(EVENT_END-EVENT_START, now-EVENT_START));
+      const idx = Math.max(0, Math.min(23, Math.floor(elapsed/HOUR)));
+      const progress = elapsed/(EVENT_END-EVENT_START);
+      const nextBoundary = EVENT_START + (idx+1)*HOUR;
 
-const formatCountdown = (ms) => {
-  if (ms <= 0) return '00:00';
-  const totalSeconds = Math.ceil(ms / 1000);
-  
-  const d = Math.floor(totalSeconds / (3600 * 24));
-  const h = Math.floor((totalSeconds % (3600 * 24)) / 3600);
-  const m = Math.floor((totalSeconds % 3600) / 60);
-  const s = totalSeconds % 60;
-  
-  if (d > 0) return `${d}d ${h}h ${m}m`;
-  if (h > 0) return `${h}h ${m}m ${s.toString().padStart(2, '0')}s`;
-  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-};
+      const closeSession = () => {
+        setSession(null);
+        setThanks(true);
+        setTimeout(()=>setThanks(false),4000);
+      };
 
-export default function App() {
-  const [now, setNow] = useState(Date.now());
-  const [activeSessionCategory, setActiveSessionCategory] = useState(null);
-  const [thankYouMessage, setThankYouMessage] = useState(false);
-
-  // High-precision clock that resyncs properly
-  useEffect(() => {
-    const tick = () => setNow(Date.now());
-    const timer = setInterval(tick, 1000);
-    
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') tick();
-    };
-    document.addEventListener('visibilitychange', handleVisibility);
-    
-    return () => {
-      clearInterval(timer);
-      document.removeEventListener('visibilitychange', handleVisibility);
-    };
-  }, []);
-
-  const eventState = getEventState(now);
-  const elapsedMs = Math.max(0, now - EVENT_CONFIG.startTime);
-  const currentHourIndex = Math.min(23, Math.floor(elapsedMs / (60 * 60 * 1000)));
-  const currentSlotStartMs = EVENT_CONFIG.startTime + (currentHourIndex * 60 * 60 * 1000);
-  const nextSlotStartMs = currentSlotStartMs + (60 * 60 * 1000);
-  const msUntilNext = nextSlotStartMs - now;
-  const progress = Math.max(0, Math.min(1, elapsedMs / EVENT_CONFIG.durationMs));
-
-  const handleJoinPrayer = (category = GENERAL_CATEGORY) => {
-    setActiveSessionCategory(category);
-    setThankYouMessage(false);
-  };
-
-  const handleCloseSession = () => {
-    setActiveSessionCategory(null);
-    setThankYouMessage(true);
-    setTimeout(() => setThankYouMessage(false), 5000);
-  };
-
-  return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-orange-500/30 overflow-x-hidden">
-      <style>{`
-        .glass-panel {
-          background: rgba(15, 23, 42, 0.6);
-          backdrop-filter: blur(16px);
-          -webkit-backdrop-filter: blur(16px);
-          border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-        .scrollbar-custom::-webkit-scrollbar { width: 6px; }
-        .scrollbar-custom::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); border-radius: 4px; }
-        .scrollbar-custom::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 4px; }
-        .scrollbar-custom::-webkit-scrollbar-thumb:hover { background: rgba(249, 115, 22, 0.5); }
-      `}</style>
-
-      {/* Subtle background glow */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden motion-reduce:hidden">
-        <div className="absolute top-[-10%] right-[-5%] w-[50vw] h-[50vw] bg-slate-800/20 rounded-full blur-[120px]"></div>
-        <div className="absolute top-[20%] left-[-10%] w-[40vw] h-[40vw] bg-orange-900/10 rounded-full blur-[140px]"></div>
-      </div>
-
-      <div className="max-w-[1200px] mx-auto min-h-screen relative z-10 flex flex-col pb-24">
-        
-        {/* Header */}
-        <header className="pt-12 pb-8 px-6 text-center flex flex-col items-center">
-          <img src="image.png" alt="The Foundery Church" className="h-20 w-auto mb-6 drop-shadow-xl" />
-          <h1 className="text-3xl md:text-5xl font-light tracking-tight mb-3 text-white">
-            <span className="font-bold">24 HOURS</span> OF PRAYER
-          </h1>
-          <p className="text-slate-300 font-light text-base md:text-lg tracking-wide mb-1">One Church. One Prayer. Every Hour.</p>
-          <p className="text-orange-400/90 text-sm font-medium tracking-widest uppercase mb-4">Sundays Are Just the Start.</p>
-          <p className="text-slate-500 text-xs tracking-wider">The Foundery Church · Wellsburg, West Virginia</p>
-        </header>
-
-        <main className="flex-1 w-full px-4 lg:px-8 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
-          
-          {/* Left Column: Orbit and Actions (Sticky on Desktop) */}
-          <div className="lg:col-span-5 flex flex-col gap-8 w-full max-w-md mx-auto lg:max-w-none lg:sticky lg:top-12">
-            
-            <PrayerOrbit 
-              eventState={eventState}
-              currentHourIndex={currentHourIndex}
-              progress={progress}
-              now={now}
-              msUntilNext={msUntilNext}
-            />
-            
-            <div className="flex flex-col gap-4 mt-2">
-              <button 
-                onClick={() => handleJoinPrayer(GENERAL_CATEGORY)}
-                className="w-full relative group overflow-hidden rounded-2xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-base py-4 transition-colors active:scale-[0.99] flex items-center justify-center gap-3 shadow-lg shadow-orange-900/20"
-              >
-                <Play fill="currentColor" size={18} />
-                <span className="tracking-widest uppercase">
-                  {eventState === 'in-progress' ? "Join this hour in prayer" : "Take a moment to pray"}
-                </span>
-              </button>
-
-              <div className="h-6 flex items-center justify-center">
-                {thankYouMessage && (
-                  <p className="text-emerald-400 text-sm font-medium animate-in fade-in slide-in-from-bottom-2">
-                    Thank you for joining us in prayer.
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <ShareControls />
+      return (
+        <div className="min-h-screen bg-slate-950 text-slate-100 overflow-x-hidden">
+          <div className="fixed inset-0 pointer-events-none overflow-hidden">
+            <div className="absolute -top-20 -right-20 w-96 h-96 rounded-full bg-slate-800/30 blur-3xl"></div>
+            <div className="absolute top-1/3 -left-20 w-80 h-80 rounded-full bg-orange-900/20 blur-3xl"></div>
           </div>
 
-          {/* Right Column: Timeline, Focus, Form */}
-          <div className="lg:col-span-7 flex flex-col gap-10 w-full max-w-md mx-auto lg:max-w-none pb-12">
-            
-            <section aria-labelledby="timeline-heading">
-              <div className="flex flex-wrap justify-between items-end mb-4 px-1 gap-2">
-                <h2 id="timeline-heading" className="font-light text-2xl text-white tracking-tight">Prayer Schedule</h2>
-                <span className="text-slate-400 text-xs uppercase tracking-widest bg-slate-900 px-3 py-1 rounded-full border border-slate-800">
-                  {eventState === 'before' ? 'Upcoming' : eventState === 'completed' ? 'Completed' : `Hour ${currentHourIndex + 1} of 24`}
-                </span>
-              </div>
-              <PrayerTimeline 
-                currentHourIndex={currentHourIndex} 
-                eventState={eventState}
-              />
-            </section>
+          <div className="relative z-10 max-w-6xl mx-auto px-4 pb-24">
+            <header className="pt-10 pb-8 text-center">
+              <img src="image.png" alt="The Foundery Church" className="h-24 md:h-28 w-auto mx-auto mb-5 object-contain" onError={(e)=>{e.currentTarget.style.display="none"}} />
+              <h1 className="text-3xl md:text-5xl font-light tracking-tight"><strong>24 HOURS</strong> OF PRAYER</h1>
+              <p className="text-slate-300 mt-3">One Church. One Prayer. Every Hour.</p>
+              <p className="text-orange-400 uppercase tracking-[.22em] text-xs font-semibold mt-2">Sundays Are Just the Start.</p>
+              <p className="text-slate-500 text-xs mt-4">The Foundery Church · Wellsburg, West Virginia</p>
+            </header>
 
-            <section aria-labelledby="focus-heading">
-              <h2 id="focus-heading" className="font-light text-2xl text-white mb-4 px-1 tracking-tight">Prayer Focus</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {EVENT_CONFIG.categories.map((cat) => (
-                  <button 
-                    key={cat.id}
-                    onClick={() => handleJoinPrayer(cat)}
-                    className="glass-panel p-5 rounded-2xl flex flex-col text-left group hover:bg-slate-800/80 hover:border-orange-500/50 transition-all focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  >
-                    <div className="flex justify-between items-center mb-2 w-full">
-                      <span className="font-medium text-slate-100 text-base tracking-wide">{cat.title}</span>
-                      <ArrowRight size={16} className="text-slate-600 group-hover:text-orange-400 transition-colors" />
-                    </div>
-                    <span className="text-slate-400 text-sm font-light leading-relaxed">{cat.desc}</span>
-                  </button>
-                ))}
-              </div>
-            </section>
+            <main className="grid lg:grid-cols-12 gap-8">
+              <section className="lg:col-span-5">
+                <PrayerOrbit state={state} index={idx} progress={progress} now={now} nextBoundary={nextBoundary} />
 
-            <section className="glass-panel rounded-3xl p-6 md:p-8 mt-4" aria-labelledby="request-heading">
-              <PrayerRequestForm />
-            </section>
+                <button onClick={()=>setSession(GENERAL)} className="w-full mt-5 rounded-2xl bg-orange-600 hover:bg-orange-500 py-4 font-bold tracking-widest uppercase flex items-center justify-center gap-3 shadow-lg">
+                  <Icon name="play" size={18}/>
+                  {state==="in-progress" ? "Join this hour in prayer" : "Take a moment to pray"}
+                </button>
 
-          </div>
-        </main>
-      </div>
+                <div className="h-8 flex items-center justify-center text-emerald-400 text-sm">{thanks ? "Thank you for joining us in prayer." : ""}</div>
+                <ShareControls/>
+              </section>
 
-      {activeSessionCategory && (
-        <PrayerSession 
-          category={activeSessionCategory} 
-          onClose={handleCloseSession}
-        />
-      )}
-    </div>
-  );
-}
-
-function PrayerOrbit({ eventState, currentHourIndex, progress, now, msUntilNext }) {
-  const cx = 150, cy = 150, r = 135; 
-  const circumference = 2 * Math.PI * r;
-  const strokeDashoffset = circumference - (progress * circumference);
-  
-  // Calculate particle position based on progress
-  const angle = (progress * 2 * Math.PI) - (Math.PI / 2);
-  const particleX = cx + r * Math.cos(angle);
-  const particleY = cy + r * Math.sin(angle);
-
-  const currentPerson = EVENT_CONFIG.schedule[currentHourIndex];
-  const currentSlotStartMs = EVENT_CONFIG.startTime + (currentHourIndex * 60 * 60 * 1000);
-  const currentSlotEndMs = currentSlotStartMs + (60 * 60 * 1000);
-  const isFinalHour = currentHourIndex === 23;
-  const nextPerson = isFinalHour ? null : EVENT_CONFIG.schedule[currentHourIndex + 1];
-
-  return (
-    <div className="flex flex-col items-center">
-      <div className="relative w-full aspect-square flex items-center justify-center max-w-[360px] mx-auto">
-        <svg viewBox="0 0 300 300" className="w-full h-full absolute inset-0 pointer-events-none">
-          <defs>
-            <linearGradient id="orbitGlowUnique" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#f97316" />
-              <stop offset="100%" stopColor="#ea580c" />
-            </linearGradient>
-          </defs>
-
-          {/* Background Track */}
-          <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="3" />
-
-          {/* Active Progress Track */}
-          {eventState !== 'before' && (
-            <circle 
-              cx={cx} cy={cy} r={r} 
-              fill="none" 
-              stroke="url(#orbitGlowUnique)" 
-              strokeWidth="4"
-              strokeLinecap="round"
-              strokeDasharray={circumference}
-              strokeDashoffset={strokeDashoffset}
-              className="transition-all duration-1000 ease-linear motion-reduce:transition-none"
-              transform="rotate(-90 150 150)"
-            />
-          )}
-
-          {/* Current Position Particle */}
-          {eventState === 'in-progress' && (
-            <g transform={`translate(${particleX - cx}, ${particleY - cy})`} className="transition-transform duration-1000 ease-linear motion-reduce:transition-none">
-              <circle cx={cx} cy={cy} r="8" fill="rgba(249,115,22,0.3)" className="motion-safe:animate-pulse" />
-              <circle cx={cx} cy={cy} r="4" fill="#fff" />
-            </g>
-          )}
-        </svg>
-
-        {/* Center Content */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 z-10">
-          {eventState === 'in-progress' ? (
-            <>
-              <div className="inline-flex items-center gap-2 mb-4">
-                <span className="relative flex h-2 w-2">
-                  <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
-                </span>
-                <span className="text-orange-400 font-semibold tracking-widest text-xs uppercase">Scheduled Now</span>
-              </div>
-              <h3 className="text-2xl md:text-3xl font-light text-white leading-tight mb-2 line-clamp-2 px-4">
-                {currentPerson}
-              </h3>
-              <p className="text-slate-300 font-medium text-sm tracking-widest uppercase">
-                {formatEventTime(currentSlotStartMs)} – {formatEventTime(currentSlotEndMs)}
-              </p>
-            </>
-          ) : eventState === 'before' ? (
-            <>
-              <h3 className="text-xl font-light text-white tracking-tight mb-2">Begins</h3>
-              <p className="text-orange-400 font-medium text-sm tracking-widest uppercase mb-1">
-                {formatEventDate(EVENT_CONFIG.startTime)}
-              </p>
-              <p className="text-slate-400 text-xs">
-                {formatEventTime(EVENT_CONFIG.startTime)} {EVENT_CONFIG.timeZone === 'America/New_York' ? 'Eastern Time' : ''}
-              </p>
-            </>
-          ) : (
-            <>
-              <h3 className="text-2xl font-light text-white tracking-tight mb-2">Completed</h3>
-              <p className="text-slate-400 text-sm max-w-[200px]">Thank you for being part of the unbroken chain.</p>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Beneath Orbit Context */}
-      <div className="h-12 mt-4 text-center flex flex-col items-center justify-center">
-        {eventState === 'in-progress' && (
-          isFinalHour ? (
-            <>
-              <p className="text-slate-300 text-sm font-medium">Our final hour</p>
-              <p className="text-slate-500 text-xs mt-1">Gathering ends in {formatCountdown(msUntilNext)}</p>
-            </>
-          ) : (
-            <>
-              <p className="text-slate-300 text-sm font-medium">
-                Next: <span className="text-white">{nextPerson}</span>
-              </p>
-              <p className="text-slate-500 text-xs mt-1 font-mono tracking-wide">Begins in {formatCountdown(msUntilNext)}</p>
-            </>
-          )
-        )}
-        {eventState === 'before' && (
-          <p className="text-slate-400 text-sm">Event starts in <span className="text-white font-mono">{formatCountdown(EVENT_CONFIG.startTime - now)}</span></p>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function PrayerTimeline({ currentHourIndex, eventState }) {
-  const scrollRef = useRef(null);
-
-  // Auto-scroll current item into view safely
-  useEffect(() => {
-    if (eventState === 'in-progress' && scrollRef.current) {
-      const activeEl = scrollRef.current.querySelector('[aria-current="step"]');
-      if (activeEl) {
-        // Use a slight delay to ensure rendering is complete before scrolling
-        setTimeout(() => {
-          activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 100);
-      }
-    }
-  }, [currentHourIndex, eventState]);
-
-  return (
-    <div className="glass-panel rounded-3xl p-4 sm:p-6 relative">
-      <div 
-        ref={scrollRef}
-        className="relative max-h-[400px] overflow-y-auto scrollbar-custom pr-2"
-        role="list"
-        aria-label="24 Hour Schedule"
-      >
-        {/* Continuous background line */}
-        <div className="absolute left-[23px] top-4 bottom-4 w-[2px] bg-slate-800 z-0" />
-        
-        {EVENT_CONFIG.schedule.map((name, index) => {
-          const isPast = eventState === 'completed' || (eventState === 'in-progress' && index < currentHourIndex);
-          const isCurrent = eventState === 'in-progress' && index === currentHourIndex;
-          
-          const slotStartMs = EVENT_CONFIG.startTime + (index * 60 * 60 * 1000);
-          
-          return (
-            <div 
-              key={index} 
-              role="listitem"
-              aria-current={isCurrent ? "step" : undefined}
-              className={`relative z-10 flex items-start gap-4 py-3 px-3 rounded-xl transition-colors
-                ${isCurrent ? 'bg-orange-900/20 border border-orange-500/20 my-1' : 'border border-transparent'}
-                ${isPast ? 'opacity-60' : 'opacity-100'}
-              `}
-            >
-              <div className="flex flex-col items-center pt-1 shrink-0 w-[24px]">
-                {isPast ? (
-                  <CheckCircle2 size={24} className="text-slate-500 bg-slate-900 rounded-full shadow-[0_0_0_4px_rgba(15,23,42,1)]" />
-                ) : isCurrent ? (
-                  <div className="relative w-6 h-6 flex items-center justify-center bg-slate-900 rounded-full shadow-[0_0_0_4px_rgba(15,23,42,1)]">
-                    <div className="w-3 h-3 rounded-full bg-orange-500 relative z-10"></div>
+              <section className="lg:col-span-7 space-y-10">
+                <div>
+                  <div className="flex items-end justify-between mb-4 gap-3">
+                    <h2 className="text-2xl font-light">Prayer Schedule</h2>
+                    <span className="text-xs uppercase tracking-widest text-slate-400 bg-slate-900 border border-slate-800 rounded-full px-3 py-1">
+                      {state==="before" ? "Upcoming" : state==="completed" ? "Completed" : `Hour ${idx+1} of 24`}
+                    </span>
                   </div>
-                ) : (
-                  <div className="w-3 h-3 rounded-full bg-slate-700 border-2 border-slate-900 m-1.5 shadow-[0_0_0_4px_rgba(15,23,42,1)] z-10"></div>
-                )}
+                  <Timeline state={state} index={idx}/>
+                </div>
+
+                <div>
+                  <h2 className="text-2xl font-light mb-4">Prayer Focus</h2>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    {CATEGORIES.map((c,i)=>(
+                      <button key={i} onClick={()=>setSession(c)} className="glass-panel rounded-2xl p-5 text-left hover:border-orange-500/50 transition">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="font-medium">{c.title}</span>
+                          <Icon name="arrow-right" size={16} className="text-slate-500"/>
+                        </div>
+                        <p className="text-slate-400 text-sm mt-2">{c.desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="glass-panel rounded-3xl p-6 md:p-8">
+                  <PrayerRequestForm/>
+                </div>
+              </section>
+            </main>
+          </div>
+
+          {session && <PrayerSession category={session} onClose={closeSession}/>}
+        </div>
+      );
+    }
+
+    function PrayerOrbit({state,index,progress,now,nextBoundary}) {
+      const current = SCHEDULE[index];
+      const next = index < 23 ? SCHEDULE[index+1] : null;
+      const start = EVENT_START + index*HOUR;
+      const end = start + HOUR;
+      const radius=112;
+      const circumference=2*Math.PI*radius;
+      const offset=circumference-(progress*circumference);
+
+      return (
+        <div className="flex flex-col items-center">
+          <div className="relative w-full max-w-[360px] aspect-square">
+            <svg viewBox="0 0 260 260" className="absolute inset-0 w-full h-full">
+              <defs>
+                <linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#f97316"/><stop offset="1" stopColor="#ea580c"/></linearGradient>
+              </defs>
+              <circle cx="130" cy="130" r={radius} fill="none" stroke="rgba(255,255,255,.07)" strokeWidth="3"/>
+              {state!=="before" && <circle cx="130" cy="130" r={radius} fill="none" stroke="url(#g)" strokeWidth="5" strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={offset} transform="rotate(-90 130 130)"/>}
+            </svg>
+
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-10">
+              {state==="in-progress" && <>
+                <div className="flex items-center gap-2 text-orange-400 text-xs font-semibold tracking-widest uppercase mb-4">
+                  <span className="w-2 h-2 rounded-full bg-orange-500 pulse-dot"></span> Praying Now
+                </div>
+                <h3 className="text-2xl md:text-3xl font-light">{current}</h3>
+                <p className="text-slate-300 text-sm mt-2 tracking-widest uppercase">{formatTime(start)} – {formatTime(end)}</p>
+                <p className="text-slate-500 text-xs mt-4">Right now, {current} is carrying the prayer forward.</p>
+              </>}
+              {state==="before" && <>
+                <h3 className="text-2xl font-light">Begins Soon</h3>
+                <p className="text-orange-400 mt-2">September 29, 2026</p>
+                <p className="text-slate-400 text-sm mt-1">12:00 AM Eastern Time</p>
+              </>}
+              {state==="completed" && <>
+                <h3 className="text-2xl font-light">Completed</h3>
+                <p className="text-slate-400 text-sm mt-2">Thank you for being part of the unbroken chain.</p>
+              </>}
+            </div>
+          </div>
+
+          <div className="h-12 text-center">
+            {state==="in-progress" && (next
+              ? <><p className="text-sm text-slate-300">Next: <span className="text-white">{next}</span></p><p className="text-xs text-slate-500 mt-1">Begins in {countdown(nextBoundary-now)}</p></>
+              : <><p className="text-sm text-slate-300">Our final hour</p><p className="text-xs text-slate-500 mt-1">Ends in {countdown(EVENT_END-now)}</p></>
+            )}
+            {state==="before" && <p className="text-sm text-slate-400">Event starts in <span className="text-white font-mono">{countdown(EVENT_START-now)}</span></p>}
+          </div>
+        </div>
+      );
+    }
+
+    function Timeline({state,index}) {
+      const ref = useRef(null);
+      useEffect(()=>{
+        if(state==="in-progress" && ref.current){
+          const el=ref.current.querySelector('[data-current="true"]');
+          if(el) setTimeout(()=>el.scrollIntoView({behavior:"smooth",block:"center"}),100);
+        }
+      },[state,index]);
+
+      return (
+        <div className="glass-panel rounded-3xl p-4 sm:p-6">
+          <div ref={ref} className="max-h-[410px] overflow-y-auto scrollbar-custom pr-2">
+            {SCHEDULE.map((name,i)=>{
+              const past=state==="completed" || (state==="in-progress" && i<index);
+              const current=state==="in-progress" && i===index;
+              return (
+                <div key={i} data-current={current?"true":"false"} className={`flex items-center gap-4 py-3 px-3 rounded-xl border ${current?"bg-orange-900/20 border-orange-500/20":"border-transparent"} ${past?"opacity-55":""}`}>
+                  <div className="w-6 flex justify-center">
+                    {past ? <Icon name="circle-check" size={22} className="text-slate-500"/> : <span className={`w-3 h-3 rounded-full ${current?"bg-orange-500":"bg-slate-700"}`}></span>}
+                  </div>
+                  <div className="min-w-0 flex-1 flex items-center justify-between gap-4">
+                    <span className={`truncate ${current?"font-semibold text-white":"text-slate-200"}`}>{name}</span>
+                    <span className={`font-mono text-sm shrink-0 ${current?"text-orange-400":"text-slate-500"}`}>{formatTime(EVENT_START+i*HOUR)}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-center text-xs text-slate-500 mt-4 pt-4 border-t border-slate-800">All times shown in Eastern Time.</p>
+        </div>
+      );
+    }
+
+    function PrayerSession({category,onClose}) {
+      const [i,setI]=useState(0);
+      const [auto,setAuto]=useState(false);
+      const [start]=useState(Date.now());
+      const [elapsed,setElapsed]=useState(0);
+
+      useEffect(()=>{
+        const id=setInterval(()=>setElapsed(Date.now()-start),1000);
+        return ()=>clearInterval(id);
+      },[start]);
+
+      useEffect(()=>{
+        if(!auto) return;
+        const id=setInterval(()=>setI(v=>(v+1)%category.prompts.length),30000);
+        return ()=>clearInterval(id);
+      },[auto,category.prompts.length]);
+
+      useEffect(()=>{
+        const fn=(e)=>{
+          if(e.key==="Escape") onClose();
+          if(e.key==="ArrowRight") setI(v=>(v+1)%category.prompts.length);
+          if(e.key==="ArrowLeft") setI(v=>(v-1+category.prompts.length)%category.prompts.length);
+        };
+        window.addEventListener("keydown",fn);
+        document.body.style.overflow="hidden";
+        return ()=>{window.removeEventListener("keydown",fn);document.body.style.overflow="";};
+      },[onClose,category.prompts.length]);
+
+      const total=Math.floor(elapsed/1000);
+      const elapsedText=`${Math.floor(total/60)}:${String(total%60).padStart(2,"0")}`;
+
+      return (
+        <div className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="glass-panel bg-slate-900 rounded-3xl w-full max-w-3xl overflow-hidden shadow-2xl">
+            <div className="flex items-center justify-between p-5 border-b border-white/10">
+              <h2 className="text-orange-400 font-medium">{category.title}</h2>
+              <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/5 grid place-items-center"><Icon name="x" size={20}/></button>
+            </div>
+            <div className="min-h-[310px] p-8 md:p-12 flex items-center justify-center text-center">
+              <p className="text-2xl md:text-4xl font-light leading-relaxed">“{category.prompts[i]}”</p>
+            </div>
+            <div className="p-5 bg-slate-950/50">
+              <div className="flex justify-center gap-2 mb-6">
+                {category.prompts.map((_,n)=><button key={n} onClick={()=>setI(n)} className={`h-2 rounded-full ${n===i?"w-8 bg-orange-500":"w-2 bg-white/20"}`} aria-label={`Prayer prompt ${n+1}`}></button>)}
               </div>
-              
-              <div className="flex-1 min-w-0">
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-4">
-                  <span className={`block text-base truncate ${isCurrent ? 'text-white font-medium' : 'text-slate-200 font-light'}`}>
-                    {name}
-                  </span>
-                  <span className={`font-mono text-sm shrink-0 ${isCurrent ? 'text-orange-400' : 'text-slate-500'}`}>
-                    {formatEventTime(slotStartMs)}
-                  </span>
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-2">
+                  <button onClick={()=>setI(v=>(v-1+category.prompts.length)%category.prompts.length)} className="w-11 h-11 rounded-full hover:bg-white/10 grid place-items-center"><Icon name="chevron-left" size={24}/></button>
+                  <button onClick={()=>setAuto(v=>!v)} className={`h-11 px-4 rounded-full border flex items-center gap-2 ${auto?"border-orange-500/30 text-orange-400 bg-orange-500/10":"border-white/10 text-slate-300"}`}><Icon name={auto?"pause":"play"} size={18}/> Auto</button>
+                  <button onClick={()=>setI(v=>(v+1)%category.prompts.length)} className="w-11 h-11 rounded-full hover:bg-white/10 grid place-items-center"><Icon name="chevron-right" size={24}/></button>
+                </div>
+                <div className="flex items-center gap-5">
+                  <div className="text-right">
+                    <div className="text-[10px] text-slate-500 uppercase tracking-wider">Praying for</div>
+                    <div className="font-mono text-slate-300">{elapsedText}</div>
+                  </div>
+                  <button onClick={onClose} className="h-11 px-5 rounded-xl bg-white/10 hover:bg-white/20">Finish Praying</button>
                 </div>
               </div>
             </div>
-          );
-        })}
-      </div>
-      <p className="text-center text-xs text-slate-500 mt-4 pt-4 border-t border-slate-800">
-        All times shown in Eastern Time.
-      </p>
-    </div>
-  );
-}
-
-function PrayerSession({ category, onClose }) {
-  const [promptIndex, setPromptIndex] = useState(0);
-  const [isAuto, setIsAuto] = useState(false);
-  const [sessionStart] = useState(Date.now());
-  const [elapsedMs, setElapsedMs] = useState(0);
-
-  const prompts = category.prompts;
-
-  // Track elapsed time based on absolute start timestamp
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setElapsedMs(Date.now() - sessionStart);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [sessionStart]);
-
-  // Auto-advance logic (30 seconds)
-  useEffect(() => {
-    if (!isAuto) return;
-    const cycler = setInterval(() => {
-      setPromptIndex((prev) => (prev + 1) % prompts.length);
-    }, 30000); 
-    return () => clearInterval(cycler);
-  }, [isAuto, prompts.length, promptIndex]); // Reset timer when prompt changes manually
-
-  // Keyboard accessibility and focus lock (simplified via fixed overlay)
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') onClose();
-      if (e.key === 'ArrowRight') setPromptIndex((p) => (p + 1) % prompts.length);
-      if (e.key === 'ArrowLeft') setPromptIndex((p) => (p - 1 + prompts.length) % prompts.length);
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    // Prevent background scrolling
-    document.body.style.overflow = 'hidden';
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = '';
-    };
-  }, [onClose, prompts.length]);
-
-  // Formatting for elapsed prayer timer
-  const formatElapsed = (ms) => {
-    const totalSeconds = Math.floor(ms / 1000);
-    const m = Math.floor(totalSeconds / 60);
-    const s = totalSeconds % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
-  };
-
-  return (
-    <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/95 backdrop-blur-md overflow-y-auto"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="session-title"
-    >
-      <div className="relative w-full max-w-3xl min-h-[500px] flex flex-col my-auto glass-panel bg-slate-900 rounded-3xl overflow-hidden border-slate-700 shadow-2xl animate-in fade-in zoom-in-95 duration-300">
-        
-        {/* Header */}
-        <div className="flex justify-between items-center p-5 sm:p-6 border-b border-white/10">
-          <div className="flex items-center gap-3">
-            <h2 id="session-title" className="text-orange-400 font-medium text-sm sm:text-base tracking-wide">
-              {category.title}
-            </h2>
           </div>
-          <button 
-            onClick={onClose} 
-            className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500"
-            aria-label="Close prayer session"
-          >
-            <X size={20} />
+        </div>
+      );
+    }
+
+    function PrayerRequestForm() {
+      const [status,setStatus]=useState("idle");
+      const [error,setError]=useState("");
+
+      const submit=(e)=>{
+        e.preventDefault();
+        const data=new FormData(e.currentTarget);
+        const request=String(data.get("request")||"").trim();
+        const name=String(data.get("name")||"").trim();
+        if(!request){setError("Please enter a prayer request.");return;}
+        setError("");
+        setStatus("sending");
+
+        const subject=encodeURIComponent("New Prayer Request — The Foundery Church");
+        const body=encodeURIComponent(`Name: ${name || "Anonymous"}\n\nPrayer Request:\n${request}`);
+        window.location.href=`mailto:office@thefoundery.church?subject=${subject}&body=${body}`;
+        setStatus("sent");
+        e.currentTarget.reset();
+      };
+
+      return (
+        <form onSubmit={submit} className="space-y-4">
+          <div>
+            <h3 className="text-2xl font-light">How can we pray for you?</h3>
+            <p className="text-slate-400 text-sm mt-1">Your request will be addressed to office@thefoundery.church.</p>
+          </div>
+
+          <div>
+            <label htmlFor="name" className="text-sm text-slate-300">Name <span className="text-slate-500">(Optional)</span></label>
+            <input id="name" name="name" maxLength="100" className="mt-1.5 w-full bg-slate-900/60 border border-slate-700 rounded-xl px-4 py-3 outline-none focus:border-orange-500/50"/>
+          </div>
+
+          <div>
+            <label htmlFor="request" className="text-sm text-slate-300">Prayer Request</label>
+            <textarea id="request" name="request" required rows="5" maxLength="2000" className="mt-1.5 w-full bg-slate-900/60 border border-slate-700 rounded-xl px-4 py-3 outline-none resize-none focus:border-orange-500/50"></textarea>
+          </div>
+
+          {error && <p className="text-red-400 text-sm">{error}</p>}
+          {status==="sent" && <p className="text-emerald-400 text-sm">Your email app should open with the prayer request ready to send.</p>}
+
+          <button disabled={status==="sending"} className="w-full rounded-xl py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 font-medium">
+            Send Request
           </button>
-        </div>
-
-        {/* Content Area */}
-        <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-12 text-center min-h-[300px]" aria-live="polite">
-          <p 
-            key={promptIndex} // Forces re-render for clean transition
-            className="text-2xl sm:text-3xl md:text-4xl font-light text-white leading-relaxed animate-in fade-in slide-in-from-bottom-4 duration-500 motion-reduce:transition-none motion-reduce:animate-none"
-          >
-            "{prompts[promptIndex]}"
-          </p>
-        </div>
-
-        {/* Controls */}
-        <div className="p-5 sm:p-6 bg-slate-950/50 flex flex-col gap-6">
-          
-          {/* Navigation Dots (44px touch targets) */}
-          <div className="flex justify-center flex-wrap gap-1">
-            {prompts.map((_, idx) => (
-              <button 
-                key={idx}
-                onClick={() => setPromptIndex(idx)}
-                className="w-11 h-11 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-orange-500 rounded-full group"
-                aria-label={`Go to prompt ${idx + 1}`}
-                aria-current={idx === promptIndex ? 'step' : undefined}
-              >
-                <span className={`block h-2 rounded-full transition-all duration-300 motion-reduce:transition-none ${
-                  idx === promptIndex ? 'w-8 bg-orange-500' : 'w-2 bg-white/20 group-hover:bg-white/40 group-active:scale-90'
-                }`} />
-              </button>
-            ))}
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-2 w-full sm:w-auto justify-center">
-              <button 
-                onClick={() => setPromptIndex((p) => (p - 1 + prompts.length) % prompts.length)} 
-                className="p-3 w-12 h-12 flex items-center justify-center rounded-full hover:bg-white/10 text-slate-300 transition-colors" 
-                aria-label="Previous prompt"
-              >
-                <ChevronLeft size={24} />
-              </button>
-              <button 
-                onClick={() => setIsAuto(!isAuto)} 
-                className={`px-4 h-12 rounded-full flex items-center gap-2 transition-colors border ${isAuto ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' : 'hover:bg-white/10 text-slate-300 border-transparent'}`}
-                aria-pressed={isAuto}
-                aria-label={isAuto ? "Disable auto-advance" : "Enable auto-advance (30 seconds)"}
-              >
-                {isAuto ? <Pause size={18} /> : <Play size={18} />}
-                <span className="text-xs uppercase tracking-widest font-medium">Auto</span>
-              </button>
-              <button 
-                onClick={() => setPromptIndex((p) => (p + 1) % prompts.length)} 
-                className="p-3 w-12 h-12 flex items-center justify-center rounded-full hover:bg-white/10 text-slate-300 transition-colors" 
-                aria-label="Next prompt"
-              >
-                <ChevronRight size={24} />
-              </button>
-            </div>
-            
-            <div className="flex items-center gap-6 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 border-white/10 pt-4 sm:pt-0">
-              <div className="flex flex-col items-start sm:items-end">
-                <span className="text-slate-500 text-[10px] uppercase tracking-wider">Praying for</span>
-                <span className="text-slate-300 text-sm font-mono tracking-widest" aria-live="off">
-                  {formatElapsed(elapsedMs)}
-                </span>
-              </div>
-              <button 
-                onClick={onClose}
-                className="bg-white/10 hover:bg-white/20 text-white px-6 py-3 h-12 rounded-xl text-sm font-medium tracking-wide transition-colors focus:outline-none focus:ring-2 focus:ring-white"
-              >
-                Finish Praying
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PrayerRequestForm() {
-  const [status, setStatus] = useState('idle'); // idle, submitting, success, error
-  const [errorMessage, setErrorMessage] = useState('');
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    const formData = new FormData(e.target);
-    const requestText = formData.get('request').trim();
-    
-    if (!requestText) {
-      setErrorMessage('Please enter a prayer request.');
-      return;
+        </form>
+      );
     }
 
-    setStatus('submitting');
-    setErrorMessage('');
-
-    try {
-      // Setup payload for an external form service (e.g., Formspree, Netlify Forms)
-      // Sending to office@thefoundery.church configured on the service side
-      const response = await fetch('https://formspree.io/f/placeholder_endpoint_id', {
-        method: 'POST',
-        headers: { 'Accept': 'application/json' },
-        body: formData
-      });
-
-      // For prototype purposes, we treat any response (or even CORS failures if hitting a dummy endpoint) as success if simulating
-      // In a real app, you'd check response.ok
-      setStatus('success');
-      e.target.reset();
-    } catch (err) {
-      // Fallback for prototype if fetch fails completely (e.g. dummy URL fails)
-      // Usually you'd show an error here, but for demonstration we'll simulate success if the fetch throws due to bad placeholder URL
-      console.log('Submission attempted to placeholder. Simulating success.');
-      setStatus('success');
-      e.target.reset();
-    }
-  };
-
-  if (status === 'success') {
-    return (
-      <div className="py-8 flex flex-col items-center text-center animate-in fade-in" aria-live="polite">
-        <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mb-4">
-          <CheckCircle2 size={32} className="text-emerald-500" />
-        </div>
-        <h3 className="text-xl font-light text-white mb-2">Request Sent</h3>
-        <p className="text-slate-400 text-sm mb-6">
-          Your prayer request has been sent to our church office.<br/>Thank you for sharing.
-        </p>
-        <button 
-          onClick={() => setStatus('idle')}
-          className="text-orange-400 hover:text-orange-300 text-sm font-medium tracking-wide transition-colors underline-offset-4 hover:underline"
-        >
-          Submit another request
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <div>
-        <h3 id="request-heading" className="font-light text-2xl text-white tracking-tight mb-1">How can we pray for you?</h3>
-        <p className="text-slate-400 text-sm">Your request will be sent to The Foundery Church office.</p>
-      </div>
-
-      <div className="flex flex-col gap-1.5 mt-2">
-        <label htmlFor="name" className="text-slate-300 text-sm font-medium">
-          Name <span className="text-slate-500 font-normal">(Optional)</span>
-        </label>
-        <input 
-          type="text" 
-          id="name"
-          name="name"
-          maxLength={100}
-          className="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 transition-colors"
-        />
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="request" className="text-slate-300 text-sm font-medium">Prayer Request</label>
-        <textarea 
-          id="request"
-          name="request"
-          required
-          rows={4}
-          maxLength={2000}
-          className="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 transition-colors resize-none"
-        />
-      </div>
-
-      {/* Hidden subject field for form service */}
-      <input type="hidden" name="_subject" value="New Prayer Request — The Foundery" />
-      <input type="hidden" name="_replyto" value="office@thefoundery.church" />
-
-      {errorMessage && (
-        <p className="text-red-400 text-sm" role="alert">{errorMessage}</p>
-      )}
-
-      <button 
-        type="submit"
-        disabled={status === 'submitting'}
-        className="mt-2 w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white font-medium text-sm py-3.5 rounded-xl transition-colors active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-      >
-        {status === 'submitting' ? 'Sending...' : 'Send Request'}
-      </button>
-    </form>
-  );
-}
-
-function ShareControls() {
-  const [copied, setCopied] = useState(false);
-
-  const handleShare = async () => {
-    const shareData = {
-      title: '24 Hours of Prayer - The Foundery Church',
-      text: 'Join me in 24 hours of unbroken prayer at The Foundery Church.',
-      url: window.location.href
-    };
-
-    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
-      try {
-        await navigator.share(shareData);
-      } catch (err) {
-        // User cancelled or share failed quietly
-        if (err.name !== 'AbortError') {
-          fallbackCopy();
+    function ShareControls(){
+      const [copied,setCopied]=useState(false);
+      const copy=async()=>{
+        try{
+          await navigator.clipboard.writeText(location.href);
+          setCopied(true);setTimeout(()=>setCopied(false),2500);
+        }catch{}
+      };
+      const share=async()=>{
+        if(navigator.share){
+          try{await navigator.share({title:"24 Hours of Prayer - The Foundery Church",text:"Join The Foundery Church in 24 Hours of Prayer.",url:location.href});return;}catch{}
         }
-      }
-    } else {
-      fallbackCopy();
+        copy();
+      };
+      return (
+        <div className="glass-panel rounded-2xl p-1.5 flex gap-1 max-w-sm mx-auto">
+          <button onClick={copy} className="flex-1 py-3 rounded-xl hover:bg-white/5 text-xs uppercase tracking-widest flex items-center justify-center gap-2"><Icon name="copy" size={16}/>{copied?"Copied!":"Copy Link"}</button>
+          <div className="w-px bg-slate-700 my-2"></div>
+          <button onClick={share} className="flex-1 py-3 rounded-xl hover:bg-white/5 text-xs uppercase tracking-widest flex items-center justify-center gap-2"><Icon name="share-2" size={16}/>Share</button>
+        </div>
+      );
     }
-  };
 
-  const fallbackCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 3000);
-    } catch (err) {
-      // Last resort fallback (document.execCommand is deprecated but sometimes needed in iframes)
-      const textArea = document.createElement("textarea");
-      textArea.value = window.location.href;
-      document.body.appendChild(textArea);
-      textArea.select();
-      try {
-        document.execCommand('copy');
-        setCopied(true);
-        setTimeout(() => setCopied(false), 3000);
-      } catch (e) {
-        console.error("Copy failed.");
-      }
-      document.body.removeChild(textArea);
-    }
-  };
-
-  return (
-    <div className="glass-panel p-1.5 rounded-2xl flex gap-1 justify-center mx-auto w-full max-w-sm mt-4">
-      <button 
-        onClick={fallbackCopy} 
-        className="flex-1 hover:bg-white/5 text-slate-300 py-3 rounded-xl font-medium text-xs tracking-widest uppercase flex items-center justify-center gap-2 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500"
-        aria-label="Copy link to clipboard"
-      >
-        <Copy size={16} /> 
-        {copied ? <span className="text-emerald-400">Copied!</span> : <span>Copy Link</span>}
-      </button>
-      <div className="w-[1px] bg-slate-700 my-2"></div>
-      <button 
-        onClick={handleShare} 
-        className="flex-1 hover:bg-white/5 text-slate-300 py-3 rounded-xl font-medium text-xs tracking-widest uppercase flex items-center justify-center gap-2 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500"
-        aria-label="Share this page"
-      >
-        <Share2 size={16} /> Share
-      </button>
-    </div>
-  );
-}
+    ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+  </script>
+</body>
+</html>
