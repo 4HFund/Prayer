@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#020617" />
+  <meta name="description" content="Join The Foundery Church for 24 Hours of Prayer — one church, one prayer, every 15 minutes." />
+  <meta name="color-scheme" content="dark" />
   <title>24 Hours of Prayer | The Foundery Church</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
@@ -31,7 +33,15 @@
     @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.45;transform:scale(1.35)} }
     @keyframes floatSoft { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
     @keyframes shimmer { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
-    @keyframes fadeCycle { 0%,100%{opacity:.45} 50%{opacity:1} }
+    @keyframes fadeCycle { 0%,100%{opacity:.55} 50%{opacity:1} }
+    button, input, textarea { -webkit-tap-highlight-color: transparent; }
+    button:focus-visible, input:focus-visible, textarea:focus-visible { outline:2px solid #fb923c; outline-offset:2px; }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; scroll-behavior:auto !important; }
+    }
+    @supports (padding: max(0px)) {
+      body { padding-bottom: env(safe-area-inset-bottom); }
+    }
   </style>
 </head>
 <body>
@@ -386,8 +396,8 @@
             })}
           </div>
           <div className="flex flex-wrap gap-x-5 gap-y-2 text-[11px] mt-4 text-slate-500">
-            <span><i className="inline-block w-2 h-2 rounded-full bg-orange-700 mr-1"></i>Completed</span>
-            <span><i className="inline-block w-2 h-2 rounded-full bg-orange-400 mr-1"></i>Now</span>
+            {state!=="before" && <span><i className="inline-block w-2 h-2 rounded-full bg-orange-700 mr-1"></i>Completed</span>}
+            {state==="in-progress" && <span><i className="inline-block w-2 h-2 rounded-full bg-orange-400 mr-1"></i>Now</span>}
             <span><i className="inline-block w-2 h-2 rounded-full bg-slate-700 mr-1"></i>Scheduled</span>
             <span className="text-teal-300"><i className="inline-block w-2 h-2 rounded-full bg-teal-400 mr-1"></i>Open</span>
           </div>
@@ -397,7 +407,8 @@
 
     function PrayerOrbit({state,index,progress,now,nextBoundary}) {
       const current = SCHEDULE[index];
-      const next = index < SCHEDULE.length-1 ? SCHEDULE[index+1] : null;
+      const hasNext = index < SCHEDULE.length-1;
+      const next = hasNext ? SCHEDULE[index+1] : null;
       const start = EVENT_START + index*SLOT;
       const end = start + SLOT;
       const cx=150, cy=150, radius=126;
@@ -470,8 +481,8 @@
           </div>
 
           <div className="min-h-14 text-center mt-1">
-            {state==="in-progress" && (next
-              ? <><p className="text-sm text-slate-300">Next: <span className="text-white font-medium">{next || "Open prayer slot"}</span></p><p className="text-xs text-orange-400/80 mt-1 font-mono">HANDOFF IN {countdown(nextBoundary-now)}</p></>
+            {state==="in-progress" && (hasNext
+              ? <><p className="text-sm text-slate-300">Next: <span className={next?"text-white font-medium":"text-teal-300 font-semibold"}>{next || "Open prayer slot — needs someone"}</span></p><p className="text-xs text-orange-400/80 mt-1 font-mono">HANDOFF IN {countdown(nextBoundary-now)}</p></>
               : <><p className="text-sm text-slate-300">Our final prayer slot</p><p className="text-xs text-orange-400/80 mt-1 font-mono">ENDS IN {countdown(EVENT_END-now)}</p></>
             )}
             {state==="before" && <p className="text-sm text-slate-400">Event starts in <span className="text-white font-mono">{countdown(EVENT_START-now)}</span></p>}
@@ -569,7 +580,7 @@
       const pct=Math.min(100,(elapsed/(15*60))*100);
 
       return (
-        <div className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-label={category.title}>
           <div className="glass-panel bg-slate-900 rounded-3xl w-full max-w-3xl overflow-hidden shadow-2xl my-auto">
             <div className="h-1 bg-white/5"><div className="h-full bg-orange-500 transition-all" style={{width:`${pct}%`}}></div></div>
             <div className="flex items-center justify-between p-5 border-b border-white/10">
@@ -605,7 +616,7 @@
 
               <div className="grid grid-cols-[52px_1fr_52px] gap-3 items-center max-w-md mx-auto">
                 <button type="button" aria-label="Previous prayer prompt" onClick={()=>move(-1)} className="w-[52px] h-[52px] rounded-full bg-white/5 active:bg-white/20 grid place-items-center touch-manipulation"><Icon name="chevron-left" size={28}/></button>
-                <button type="button" onClick={()=>{setAuto(v=>!v);setSecondsToNext(30)}} className={`h-[52px] rounded-full border flex items-center justify-center gap-2 touch-manipulation active:scale-[.98] ${auto?"border-orange-500/30 text-orange-300 bg-orange-500/10":"border-white/10 text-slate-200 bg-white/5"}`}><Icon name={auto?"pause":"play"} size={20}/> {auto?"Pause":"Resume"}</button>
+                <button type="button" onClick={()=>{setAuto(v=>!v);setSecondsToNext(20)}} className={`h-[52px] rounded-full border flex items-center justify-center gap-2 touch-manipulation active:scale-[.98] ${auto?"border-orange-500/30 text-orange-300 bg-orange-500/10":"border-white/10 text-slate-200 bg-white/5"}`}><Icon name={auto?"pause":"play"} size={20}/> {auto?"Pause":"Resume"}</button>
                 <button type="button" aria-label="Next prayer prompt" onClick={()=>move(1)} className="w-[52px] h-[52px] rounded-full bg-white/10 active:bg-white/20 grid place-items-center touch-manipulation"><Icon name="chevron-right" size={28}/></button>
               </div>
 
@@ -682,18 +693,18 @@
         }catch(err){setStatus("error");setError(err.message||"We couldn't send your signup.");}
       };
       return (
-        <div className="fixed inset-0 z-[60] bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[60] bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Volunteer for an open prayer slot">
           <div className="glass-panel rounded-3xl p-6 md:p-8 w-full max-w-md">
             <div className="flex justify-between gap-4">
               <div><div className="text-teal-300 text-xs uppercase tracking-[.2em]">Open Prayer Slot</div><h3 className="text-2xl font-light mt-2">{formatTime(start)} – {formatTime(end)}</h3></div>
-              <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/5 grid place-items-center"><Icon name="x" size={20}/></button>
+              <button type="button" onClick={onClose} className="w-10 h-10 rounded-full bg-white/5 grid place-items-center"><Icon name="x" size={20}/></button>
             </div>
             {status==="sent" ? (
-              <div className="text-center py-8"><Icon name="circle-check" size={38} className="text-emerald-400"/><h4 className="text-xl mt-4">Thank you for stepping into the prayer chain.</h4><p className="text-slate-400 text-sm mt-2">Your signup was sent to the church office.</p><button onClick={onClose} className="mt-6 px-5 py-3 rounded-xl bg-white/10">Close</button></div>
+              <div className="text-center py-8"><Icon name="circle-check" size={38} className="text-emerald-400"/><h4 className="text-xl mt-4">Thank you for stepping into the prayer chain.</h4><p className="text-slate-400 text-sm mt-2">Your signup was sent to the church office.</p><button type="button" onClick={onClose} className="mt-6 px-5 py-3 rounded-xl bg-white/10">Close</button></div>
             ) : (
               <form onSubmit={submit} className="mt-6 space-y-4">
                 <p className="text-sm text-slate-400">Enter your name and we’ll send this volunteer slot directly to the church office.</p>
-                <input name="name" placeholder="Your name" className="w-full bg-slate-900/60 border border-slate-700 rounded-xl px-4 py-3 outline-none focus:border-teal-400/60"/>
+                <label htmlFor="slot-name" className="text-sm text-slate-300">Your name</label><input id="slot-name" name="name" autoComplete="name" required placeholder="Your name" className="mt-1.5 w-full bg-slate-900/60 border border-slate-700 rounded-xl px-4 py-3 outline-none focus:border-teal-400/60"/>
                 {error&&<p className="text-red-400 text-sm">{error}</p>}
                 <button disabled={status==="sending"} className="w-full rounded-xl py-3.5 bg-teal-500 text-slate-950 font-bold hover:bg-teal-400 disabled:opacity-50">{status==="sending"?"Sending…":"I’ll Pray at This Time"}</button>
               </form>
@@ -785,9 +796,9 @@
       };
       return (
         <div className="glass-panel rounded-2xl p-1.5 flex gap-1 max-w-sm mx-auto">
-          <button onClick={copy} className="flex-1 py-3 rounded-xl hover:bg-white/5 text-xs uppercase tracking-widest flex items-center justify-center gap-2"><Icon name="copy" size={16}/>{copied?"Copied!":"Copy Link"}</button>
+          <button type="button" onClick={copy} className="flex-1 py-3 rounded-xl hover:bg-white/5 text-xs uppercase tracking-widest flex items-center justify-center gap-2"><Icon name="copy" size={16}/>{copied?"Copied!":"Copy Link"}</button>
           <div className="w-px bg-slate-700 my-2"></div>
-          <button onClick={share} className="flex-1 py-3 rounded-xl hover:bg-white/5 text-xs uppercase tracking-widest flex items-center justify-center gap-2"><Icon name="share-2" size={16}/>Share</button>
+          <button type="button" onClick={share} className="flex-1 py-3 rounded-xl hover:bg-white/5 text-xs uppercase tracking-widest flex items-center justify-center gap-2"><Icon name="share-2" size={16}/>Share</button>
         </div>
       );
     }
