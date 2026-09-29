@@ -519,7 +519,7 @@
 
     function PrayerSession({category,onClose}) {
       const [i,setI]=useState(0);
-      const [auto,setAuto]=useState(false);
+      const [auto,setAuto]=useState(true);
       const [start]=useState(Date.now());
       const [elapsed,setElapsed]=useState(0);
       const stages=[
@@ -540,8 +540,7 @@
 
       const total=Math.floor(elapsed/1000);
       const elapsedText=`${Math.floor(total/60)}:${String(total%60).padStart(2,"0")}`;
-      const min=Math.min(14,Math.floor(total/60));
-      const stage=Math.min(4,Math.floor(min/3));
+      const stage=auto ? Math.floor(total/30)%stages.length : i%stages.length;
       const pct=Math.min(100,(elapsed/(15*60*1000))*100);
 
       return (
@@ -551,7 +550,7 @@
             <div className="flex items-center justify-between p-5 border-b border-white/10">
               <div>
                 <div className="text-orange-400 font-medium">{category.title}</div>
-                <div className="text-xs text-slate-500 mt-1">15-minute guided prayer · {stages[stage][0]}</div>
+                <div className="text-xs text-slate-500 mt-1">15-minute guided prayer · Focus changes every 30 seconds</div>
               </div>
               <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/5 grid place-items-center"><Icon name="x" size={20}/></button>
             </div>
@@ -581,7 +580,7 @@
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-2">
                   <button onClick={()=>setI(v=>(v-1+category.prompts.length)%category.prompts.length)} className="w-11 h-11 rounded-full hover:bg-white/10 grid place-items-center"><Icon name="chevron-left" size={24}/></button>
-                  <button onClick={()=>setAuto(v=>!v)} className={`h-11 px-4 rounded-full border flex items-center gap-2 ${auto?"border-orange-500/30 text-orange-400 bg-orange-500/10":"border-white/10 text-slate-300"}`}><Icon name={auto?"pause":"play"} size={18}/> Auto</button>
+                  <button onClick={()=>setAuto(v=>!v)} className={`h-11 px-4 rounded-full border flex items-center gap-2 ${auto?"border-orange-500/30 text-orange-400 bg-orange-500/10":"border-white/10 text-slate-300"}`}><Icon name={auto?"pause":"play"} size={18}/> {auto?"Pause":"Resume"}</button>
                   <button onClick={()=>setI(v=>(v+1)%category.prompts.length)} className="w-11 h-11 rounded-full hover:bg-white/10 grid place-items-center"><Icon name="chevron-right" size={24}/></button>
                 </div>
                 <div className="flex items-center gap-5">
