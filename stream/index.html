@@ -3,84 +3,162 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#020617">
-<title>24 Hours of Prayer — Broadcast | The Foundery Church</title>
+<title>Praying Now | The Foundery Church</title>
 <style>
 *{box-sizing:border-box}
-html,body{width:100%;height:100%;margin:0;overflow:hidden;background:transparent!important;font-family:Inter,Arial,sans-serif}
-.stage{width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;padding:3vh 3vw;background:transparent}
-.copy{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
-.nowCard{width:100%;padding:3vh 3vw;text-align:left;background:transparent;border:0;box-shadow:none}
-.label{font-size:clamp(20px,2.5vw,40px);color:#fb923c;letter-spacing:.28em;text-transform:uppercase;font-weight:800}
-.name{font-size:clamp(54px,8vw,132px);color:#fff;font-weight:900;line-height:.95;margin-top:1.4vh;letter-spacing:-.045em;text-shadow:0 2px 12px rgba(0,0,0,.45)}
-.slot{font-size:clamp(28px,4vw,66px);color:#f1f5f9;margin-top:1.4vh;font-weight:500;text-shadow:0 2px 10px rgba(0,0,0,.5)}
-.orangeLine{width:78px;height:7px;border-radius:10px;background:#fb923c;margin-top:2.5vh}
-.divider{height:1px;background:rgba(203,213,225,.45);margin:4vh 0 3.2vh}
-.nextLabel{font-size:clamp(17px,2vw,31px);color:#94a3b8;letter-spacing:.25em}
-.nextName{font-size:clamp(38px,5.2vw,84px);color:#fff;font-weight:850;line-height:1;margin-top:1.3vh;letter-spacing:-.035em;text-shadow:0 2px 10px rgba(0,0,0,.5)}
-.nextSlot{font-size:clamp(24px,3vw,48px);color:#cbd5e1;margin-top:1.2vh;font-weight:500;text-shadow:0 2px 10px rgba(0,0,0,.5)}
+html,body{
+  width:100%;height:100%;margin:0;overflow:hidden;
+  background:transparent!important;
+  font-family:Inter,Arial,Helvetica,sans-serif;
+}
+body{color:#fff}
+.stage{
+  width:100vw;height:100vh;
+  padding:5vh 5vw;
+  display:flex;align-items:flex-start;justify-content:flex-start;
+  background:transparent!important;
+}
+.panel{
+  width:min(980px,100%);
+  background:transparent!important;
+}
+.label{
+  font-size:clamp(18px,2.4vw,38px);
+  color:#ff8a3d;
+  letter-spacing:.32em;
+  text-transform:uppercase;
+  font-weight:800;
+  line-height:1.1;
+}
+.name{
+  font-size:clamp(54px,8.2vw,130px);
+  font-weight:900;
+  line-height:.94;
+  margin-top:1.7vh;
+  letter-spacing:-.05em;
+  color:#fff;
+  text-shadow:0 2px 12px rgba(0,0,0,.65);
+}
+.slot{
+  font-size:clamp(27px,4vw,62px);
+  color:#f8fafc;
+  margin-top:1.6vh;
+  font-weight:400;
+  line-height:1.05;
+  text-shadow:0 2px 10px rgba(0,0,0,.65);
+}
+.orangeLine{
+  width:78px;height:7px;border-radius:999px;
+  background:#ff7a2f;
+  margin-top:3vh;
+}
+.divider{
+  width:100%;
+  height:1px;
+  background:rgba(203,213,225,.42);
+  margin:5vh 0 3.8vh;
+}
+.nextLabel{
+  color:#a7b0bd;
+  font-size:clamp(16px,2vw,29px);
+  letter-spacing:.28em;
+}
+.nextName{
+  font-size:clamp(34px,5vw,78px);
+  font-weight:850;
+  line-height:1;
+  margin-top:1.5vh;
+  letter-spacing:-.04em;
+  color:#fff;
+  text-shadow:0 2px 10px rgba(0,0,0,.65);
+}
+.nextSlot{
+  font-size:clamp(23px,3vw,45px);
+  color:#cbd5e1;
+  margin-top:1.3vh;
+  font-weight:400;
+  line-height:1.05;
+  text-shadow:0 2px 10px rgba(0,0,0,.65);
+}
+@media (max-width:700px){
+  .stage{padding:4vh 6vw}
+  .divider{margin-top:4vh}
+}
 </style>
 </head>
 <body>
 <div class="stage">
-    <section class="copy">
-    <div class="nowCard">
-      <div class="label" id="nowLabel">Praying Now</div>
-      <div class="name" id="name">—</div>
-      <div class="slot" id="slot">—</div>
-      <div class="orangeLine"></div><div class="divider"></div>
-      <div class="label nextLabel">Up Next</div>
-      <div class="nextName" id="nextName">—</div>
-      <div class="nextSlot" id="nextSlot">—</div>
-    </div>
+  <section class="panel">
+    <div class="label" id="nowLabel">Praying Now</div>
+    <div class="name" id="name">—</div>
+    <div class="slot" id="slot">—</div>
+    <div class="orangeLine"></div>
+    <div class="divider"></div>
+    <div class="label nextLabel">Up Next</div>
+    <div class="nextName" id="nextName">—</div>
+    <div class="nextSlot" id="nextSlot">—</div>
   </section>
-
 </div>
+
 <script>
 const EVENT_START = new Date("2026-10-01T00:00:00-04:00").getTime();
 const EVENT_END = EVENT_START + 24*60*60*1000;
 const SLOT = 15*60*1000;
+
 const SCHEDULE = [
 "Rob Walker","Jacy Mozingo","Jeff Long","Sidney Mozingo","Rob Walker","Laura Greathouse","Laura Greathouse","Sidney Mozingo","Molly Musgrave","Pastor Bobby","Pastor Dave","Ryan Cook","Emily Cook","Jose Rojo","Jose Rojo","Jose Rojo","Kevin Fiber","Matt Thoma","Matt Thoma","Matt Thoma","Sandie Hart","Logan Urban","Tina Fiber","Cody Steele","Grant Vargo","Stacie Bennett","Baylee Steele","Brittany Wargo","Beverly Cook","Ellen Daugherty","Jim Haizlett",null,"Abbey Whaley","Abbey Whaley","JoEllen Haizlett","Courtney Vargo","Courtney Vargo","Heather McCullough","Seth Roseman","Madison Westfall","Debi Vukelic","Kristen Urban","Kristen Urban","Arabella / Charlotte Westfall","Judy Penrod","Jackson Westfall","Lucy Davis","Delia Vargo","Vera Keister","Janet Leary","Destini Parr","Destini Parr","Ruth Parry","Enoch Parry","Matt Thoma","Matt Thoma","Delia Vargo","Kathryn Grice","Kara Zanes","David Grice","Lisa Doyle","Lisa Doyle","Lisa Doyle","Lisa Doyle","Pastor Jim Miller","Doc Roe","Doc Roe","Cathy Moore","Missy Miller","Chris Mockbee","Pastor Jim Miller","Haizlett family","Josh Green","Josh Green","Josh Green","Stacy Westfall","Matt Thoma","Matt Thoma","Matt Thoma","Cathy Moore","Danny Vargo","Danny Vargo","Baylee Steele","Barbara Beatty","Logan Urban","Alexis Riggs","Cody Ann Michael","Ryan Smith","Brooke Smith","Margie Mitchell","Arley Mitchell",null,"Denise Aracich","Denise Aracich","Bobby Westfall","Bobby Westfall"
 ];
-SCHEDULE[68] = "Missy Miller"; // 5:00–5:15 PM
-SCHEDULE[70] = "Pastor Jim Miller"; // 5:30–5:45 PM
-const fmt = ms => new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",hour:"numeric",minute:"2-digit"}).format(new Date(ms));
-const clock = ms => new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",hour:"numeric",minute:"2-digit",second:"2-digit"}).format(new Date(ms));
-function nextFilled(start){
-  for(let i=start;i<SCHEDULE.length;i++) if(SCHEDULE[i]) return {i,name:SCHEDULE[i]};
-  return null;
-}
+
+// Corrected live schedule slots
+SCHEDULE[68] = "Missy Miller";       // 5:00–5:15 PM
+SCHEDULE[70] = "Pastor Jim Miller";  // 5:30–5:45 PM
+
+const fmt = ms => new Intl.DateTimeFormat("en-US",{
+  timeZone:"America/New_York",
+  hour:"numeric",
+  minute:"2-digit"
+}).format(new Date(ms));
+
 function tick(){
-  const now=Date.now();
-  const transparent=new URLSearchParams(location.search).get("transparent")==="1";
-  document.body.classList.toggle("transparent",transparent);
+  const now = Date.now();
+  const state = now < EVENT_START ? "before" : now >= EVENT_END ? "after" : "live";
+  const elapsed = Math.max(0,Math.min(EVENT_END-EVENT_START,now-EVENT_START));
+  const idx = Math.max(0,Math.min(SCHEDULE.length-1,Math.floor(elapsed/SLOT)));
+  const start = EVENT_START + idx*SLOT;
+  const end = start + SLOT;
+  const current = SCHEDULE[idx] || "Open Prayer Slot";
 
-  let state=now<EVENT_START?"before":now>=EVENT_END?"after":"live";
-  let elapsed=Math.max(0,Math.min(EVENT_END-EVENT_START,now-EVENT_START));
-  let idx=Math.max(0,Math.min(95,Math.floor(elapsed/SLOT)));
-  let current=SCHEDULE[idx] || "Open Prayer Slot";
-  let start=EVENT_START+idx*SLOT, end=start+SLOT;
-  let nxt=nextFilled(idx+1);
-  let boundary=state==="before"?EVENT_START:state==="after"?EVENT_END:end;
-  let remain=Math.max(0,Math.ceil((boundary-now)/1000));
-  let m=Math.floor(remain/60), s=remain%60;
+  document.getElementById("nowLabel").textContent =
+    state==="live" ? "Praying Now" :
+    state==="before" ? "Prayer Begins At Midnight" :
+    "24 Hours Complete";
 
-  document.getElementById("nowLabel").textContent=state==="live"?"Praying Now":state==="before"?"Prayer Begins At Midnight":"24 Hours Complete";
-  document.getElementById("name").textContent=state==="before"?"The Foundery Church":state==="after"?"Thank You for Praying":current;
-  document.getElementById("slot").textContent=state==="live"?fmt(start)+" – "+fmt(end):state==="before"?"October 1, 2026":"One continuous chain of prayer";
-  const nextNameEl=document.getElementById("nextName");
-  const nextSlotEl=document.getElementById("nextSlot");
-  if(state==="live" && nxt){
-    nextNameEl.textContent=nxt.name;
-    nextSlotEl.textContent=fmt(EVENT_START+nxt.i*SLOT)+" – "+fmt(EVENT_START+(nxt.i+1)*SLOT);
-  }else{
-    nextNameEl.textContent=state==="after"?"—":SCHEDULE[0];
-    nextSlotEl.textContent=state==="after"?"":fmt(EVENT_START)+" – "+fmt(EVENT_START+SLOT);
+  document.getElementById("name").textContent =
+    state==="before" ? "The Foundery Church" :
+    state==="after" ? "Thank You for Praying" :
+    current;
+
+  document.getElementById("slot").textContent =
+    state==="live" ? fmt(start)+" – "+fmt(end) :
+    state==="before" ? "October 1, 2026" :
+    "One continuous chain of prayer";
+
+  const nextIdx = idx + 1;
+  if(state==="live" && nextIdx < SCHEDULE.length){
+    document.getElementById("nextName").textContent = SCHEDULE[nextIdx] || "Open Prayer Slot";
+    document.getElementById("nextSlot").textContent =
+      fmt(EVENT_START+nextIdx*SLOT)+" – "+fmt(EVENT_START+(nextIdx+1)*SLOT);
+  } else if(state==="before"){
+    document.getElementById("nextName").textContent = SCHEDULE[0] || "Open Prayer Slot";
+    document.getElementById("nextSlot").textContent = fmt(EVENT_START)+" – "+fmt(EVENT_START+SLOT);
+  } else {
+    document.getElementById("nextName").textContent = "—";
+    document.getElementById("nextSlot").textContent = "";
   }
-
 }
-tick();setInterval(tick,1000);
+
+tick();
+setInterval(tick,1000);
 </script>
 </body>
 </html>
