@@ -13,7 +13,11 @@ html,body{width:100%;height:100%;margin:0;overflow:hidden;background:transparent
 .nowCard{width:100%;background:rgba(2,6,23,.82);border:2px solid rgba(249,115,22,.75);border-radius:24px;padding:3vh 3vw;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.35)}
 .label{font-size:clamp(18px,2vw,34px);color:#fb923c;letter-spacing:.22em;text-transform:uppercase;font-weight:900}
 .name{font-size:clamp(48px,7vw,120px);color:#fff;font-weight:900;line-height:1;margin-top:1.5vh;letter-spacing:-.035em}
-.slot{font-size:clamp(22px,2.8vw,48px);color:#cbd5e1;margin-top:1.5vh;font-weight:600}
+.slot{font-size:clamp(18px,2.2vw,36px);color:#cbd5e1;margin-top:1vh;font-weight:600}
+.divider{height:1px;background:rgba(255,255,255,.18);margin:2vh 10%}
+.nextLabel{font-size:clamp(14px,1.5vw,24px)}
+.nextName{font-size:clamp(28px,4vw,64px);color:#fff;font-weight:900;line-height:1;margin-top:.8vh}
+.nextSlot{font-size:clamp(16px,1.8vw,30px);color:#cbd5e1;margin-top:.8vh;font-weight:600}
 </style>
 </head>
 <body>
@@ -23,6 +27,10 @@ html,body{width:100%;height:100%;margin:0;overflow:hidden;background:transparent
       <div class="label" id="nowLabel">Praying Now</div>
       <div class="name" id="name">—</div>
       <div class="slot" id="slot">—</div>
+      <div class="divider"></div>
+      <div class="label nextLabel">Up Next</div>
+      <div class="nextName" id="nextName">—</div>
+      <div class="nextSlot" id="nextSlot">—</div>
     </div>
   </section>
 
@@ -60,6 +68,15 @@ function tick(){
   document.getElementById("nowLabel").textContent=state==="live"?"Praying Now":state==="before"?"Prayer Begins At Midnight":"24 Hours Complete";
   document.getElementById("name").textContent=state==="before"?"The Foundery Church":state==="after"?"Thank You for Praying":current;
   document.getElementById("slot").textContent=state==="live"?fmt(start)+" – "+fmt(end):state==="before"?"October 1, 2026":"One continuous chain of prayer";
+  const nextNameEl=document.getElementById("nextName");
+  const nextSlotEl=document.getElementById("nextSlot");
+  if(state==="live" && nxt){
+    nextNameEl.textContent=nxt.name;
+    nextSlotEl.textContent=fmt(EVENT_START+nxt.i*SLOT)+" – "+fmt(EVENT_START+(nxt.i+1)*SLOT);
+  }else{
+    nextNameEl.textContent=state==="after"?"—":SCHEDULE[0];
+    nextSlotEl.textContent=state==="after"?"":fmt(EVENT_START)+" – "+fmt(EVENT_START+SLOT);
+  }
 
 }
 tick();setInterval(tick,1000);
