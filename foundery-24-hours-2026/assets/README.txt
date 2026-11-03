@@ -1,0 +1,1 @@
+Website imagery for The Foundery Church prayer site. These are cropped from a generated concept sheet. Buttons are static images; use accessible HTML buttons with CSS for real interaction. The generated logo was intentionally omitted; use your authentic Foundery logo.
